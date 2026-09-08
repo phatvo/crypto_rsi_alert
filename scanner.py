@@ -52,7 +52,10 @@ def calculate_rsi(prices, period: int = 14) -> float:
 
 def get_binance_rsi(symbol: str, interval: str, limit: int = 100) -> float:
     """Lấy dữ liệu nến từ cổng data-api của Binance (Không bị chặn IP)"""
-    url = "https://data-api.binance.vision/api/v3/klines"
+    # Đổi từ:
+    # url = "https://data-api.binance.vision/api/v3/klines"
+    # Thành:
+    url = "https://fapi.binance.com/fapi/v1/klines"
     params = {"symbol": symbol, "interval": interval, "limit": limit}
     try:
         resp = requests.get(url, params=params, timeout=10)
@@ -67,7 +70,10 @@ def scan_market():
     """Quét thị trường 1 lần"""
     print("Bắt đầu quét biến động giá 24h...")
     # Sử dụng endpoint data-api.binance.vision không giới hạn vị trí địa lý
-    url = "https://data-api.binance.vision/api/v3/ticker/24hr"
+    # Đổi từ:
+    # url = "https://data-api.binance.vision/api/v3/ticker/24hr"
+    # Thành:
+    url = "https://fapi.binance.com/fapi/v1/ticker/24hr"
     try:
         resp = requests.get(url, timeout=15)
         tickers = resp.json()

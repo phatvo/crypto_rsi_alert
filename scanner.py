@@ -4,8 +4,9 @@ import requests
 import pandas as pd
 
 # Cấu hình ngưỡng lọc
-PRICE_CHANGE_THRESHOLD = 60.0  # Tăng trưởng 24h >= 60%
-RSI_THRESHOLD = 60.0          # RSI 4h, 12h, 24h >= 60
+PRICE_CHANGE_THRESHOLD = 75.0  # Tăng trưởng 24h > 60%
+RSI_THRESHOLD = 85.0          # RSI 4h, 12h, 24h > 60
+CHECK_INTERVAL_SECONDS = 300  # Quét lại sau mỗi 5 phút (300 giây)
 
 # Lấy thông tin từ GitHub Secrets
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")

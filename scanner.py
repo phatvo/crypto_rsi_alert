@@ -4,8 +4,10 @@ import requests
 import pandas as pd
 
 # Cấu hình ngưỡng lọc
-PRICE_CHANGE_THRESHOLD = 75.0  # Tăng trưởng 24h > 60%
-RSI_THRESHOLD = 85.0          # RSI 4h, 12h, 24h > 60
+PRICE_CHANGE_THRESHOLD = 65.0  # Tăng trưởng 24h > 60%
+RSI_4H_THRESHOLD = 83.0          # RSI 4h, 12h, 24h > 60
+RSI_12H_THRESHOLD = 85.0          # RSI 4h, 12h, 24h > 60
+RSI_24H_THRESHOLD = 85.0          # RSI 4h, 12h, 24h > 60
 CHECK_INTERVAL_SECONDS = 300  # Quét lại sau mỗi 5 phút (300 giây)
 
 # Lấy thông tin từ GitHub Secrets
@@ -104,15 +106,15 @@ def scan_market():
 
         print(f"-> {symbol}: Price Change = +{price_change:.2f}%, RSI 4h = {rsi_4h}, 12h = {rsi_12h}, 24h = {rsi_24h}")
 
-        if rsi_4h > RSI_THRESHOLD and rsi_12h > RSI_THRESHOLD and rsi_24h > RSI_THRESHOLD:
+        if rsi_4h > RSI_4H_THRESHOLD and rsi_12h > RSI_12H_THRESHOLD and rsi_24h > RSI_24H_THRESHOLD:
             msg = (
                 f"🚨 *COIN ALERT THỎA ĐIỀU KIỆN!*\n"
                 f"• *Symbol*: `{symbol}`\n"
                 f"• *Giá hiện tại*: `{price}`\n"
-                f"• *Price Change (24h)*: `+{price_change:.2f}%`\n"
-                f"• *RSI (4h)*: `{rsi_4h}`\n"
-                f"• *RSI (12h)*: `{rsi_12h}`\n"
-                f"• *RSI (24h)*: `{rsi_24h}`\n"
+                f"• *Price Change (24h) >* `{PRICE_CHANGE_THRESHOLD:.2f}%` : `+{price_change:.2f}%`\n"
+                f"• *RSI (4h) >* `{RSI_4H_THRESHOLD}`: `{rsi_4h}`\n"
+                f"• *RSI (12h) >* `{RSI_12H_THRESHOLD}`: `{rsi_12h}`\n"
+                f"• *RSI (24h) >* `{RSI_24H_THRESHOLD}`: `{rsi_24h}`\n"
             )
             send_telegram_alert(msg)
         time.sleep(0.5)

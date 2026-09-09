@@ -5,9 +5,9 @@ import pandas as pd
 
 # Cấu hình ngưỡng lọc
 PRICE_CHANGE_THRESHOLD = 65.0  # Tăng trưởng 24h > 60%
-RSI_4H_THRESHOLD = 83.0          # RSI 4h, 12h, 24h > 60
-RSI_12H_THRESHOLD = 85.0          # RSI 4h, 12h, 24h > 60
-RSI_24H_THRESHOLD = 85.0          # RSI 4h, 12h, 24h > 60
+RSI_4H_THRESHOLD = 80.0          # RSI 4h > 80
+RSI_12H_THRESHOLD = 85.0          # RSI 12h > 85
+RSI_24H_THRESHOLD = 85.0          # RSI 24h > 85
 CHECK_INTERVAL_SECONDS = 300  # Quét lại sau mỗi 5 phút (300 giây)
 
 # Lấy thông tin từ GitHub Secrets

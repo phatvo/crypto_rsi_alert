@@ -164,7 +164,7 @@ def scan_market():
 
         print(f"-> {symbol}: Price Change = +{price_change:.2f}%, RSI 4h = {rsi_4h}, 12h = {rsi_12h}, 24h = {rsi_24h}")
 
-        if rsi_4h > 5:
+        if rsi_4h > RSI_4H_THRESHOLD_LONG and rsi_12h > RSI_12H_THRESHOLD and rsi_24h > RSI_24H_THRESHOLD:
             msg = (
                 f"🚨 *COIN ALERT THỎA ĐIỀU KIỆN LONG!*\n"
                 f"• *Symbol*: `{symbol}`\n"

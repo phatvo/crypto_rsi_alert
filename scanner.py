@@ -6,6 +6,8 @@ import pandas as pd
 # Cấu hình ngưỡng lọc
 PRICE_CHANGE_THRESHOLD = 65.0  # Tăng trưởng 24h > 60%
 RSI_4H_THRESHOLD = 80.0          # RSI 4h > 80
+PRICE_CHANGE_THRESHOLD_LONG = 33.0  # Tăng trưởng 24h > 33%
+RSI_4H_THRESHOLD_LONG = 50.0          # RSI 4h > 50
 RSI_12H_THRESHOLD = 85.0          # RSI 12h > 85
 RSI_24H_THRESHOLD = 85.0          # RSI 24h > 85
 CHECK_INTERVAL_SECONDS = 300  # Quét lại sau mỗi 5 phút (300 giây)
@@ -13,7 +15,30 @@ CHECK_INTERVAL_SECONDS = 300  # Quét lại sau mỗi 5 phút (300 giây)
 # Lấy thông tin từ GitHub Secrets
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_CHAT_ID_LONG = os.getenv("TELEGRAM_CHAT_ID_LONG")
 
+def send_telegram_alert_long(message: str):
+    """Gửi cảnh báo qua Telegram Bot"""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID_LONG:
+        print("[Lỗi]: Thiếu cấu hình Token hoặc Chat ID trong Secrets")
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID_LONG, 
+        "text": message, 
+        "parse_mode": "Markdown"
+    }
+        
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+        res = resp.json()
+        if res.get("ok"):
+            print("-> [Thành công] Đã gửi tin nhắn đến Telegram!")
+        else:
+            print(f"-> [Lỗi Telegram]: {res.get('description')}")
+    except Exception as e:
+        print(f"-> [Lỗi kết nối Telegram]: {e}")
+        
 def send_telegram_alert(message: str):
     """Gửi cảnh báo qua Telegram Bot"""
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -25,6 +50,8 @@ def send_telegram_alert(message: str):
         "text": message, 
         "parse_mode": "Markdown"
     }
+    
+    
     try:
         resp = requests.post(url, json=payload, timeout=10)
         res = resp.json()
@@ -92,8 +119,15 @@ def scan_market():
         t for t in tickers
         if isinstance(t, dict) and t.get("symbol", "").endswith("USDT") and float(t.get("priceChangePercent", 0)) >= PRICE_CHANGE_THRESHOLD
     ]
-
     print(f"Tìm thấy {len(matched_candidates)} coin có biến động >= {PRICE_CHANGE_THRESHOLD}%")
+    
+    matched_candidates_long = [
+        t for t in tickers
+        if isinstance(t, dict) and t.get("symbol", "").endswith("USDT") and float(t.get("priceChangePercent", 0)) >= PRICE_CHANGE_THRESHOLD_LONG
+    ]
+
+    print(f"Tìm thấy {len(matched_candidates_long)} coin có biến động >= {PRICE_CHANGE_THRESHOLD_LONG}%")
+    
 
     for coin in matched_candidates:
         symbol = coin["symbol"]
@@ -117,6 +151,30 @@ def scan_market():
                 f"• *RSI (24h) >* `{RSI_24H_THRESHOLD}`: `{rsi_24h}`\n"
             )
             send_telegram_alert(msg)
+        time.sleep(0.5)
+
+    for coin in matched_candidates_long:
+        symbol = coin["symbol"]
+        price = float(coin["lastPrice"])
+        price_change = float(coin["priceChangePercent"])
+
+        rsi_4h = get_binance_rsi(symbol, "4h")
+        rsi_12h = get_binance_rsi(symbol, "12h")
+        rsi_24h = get_binance_rsi(symbol, "1d")
+
+        print(f"-> {symbol}: Price Change = +{price_change:.2f}%, RSI 4h = {rsi_4h}, 12h = {rsi_12h}, 24h = {rsi_24h}")
+
+        if rsi_4h > RSI_4H_THRESHOLD_LONG and rsi_12h > RSI_12H_THRESHOLD and rsi_24h > RSI_24H_THRESHOLD:
+            msg = (
+                f"🚨 *COIN ALERT THỎA ĐIỀU KIỆN LONG!*\n"
+                f"• *Symbol*: `{symbol}`\n"
+                f"• *Giá hiện tại*: `{price}`\n"
+                f"• *Price Change (24h) >* `{PRICE_CHANGE_THRESHOLD_LONG:.2f}%` : `+{price_change:.2f}%`\n"
+                f"• *RSI (4h) >* `{RSI_4H_THRESHOLD_LONG}`: `{rsi_4h}`\n"
+                f"• *RSI (12h) >* `{RSI_12H_THRESHOLD}`: `{rsi_12h}`\n"
+                f"• *RSI (24h) >* `{RSI_24H_THRESHOLD}`: `{rsi_24h}`\n"
+            )
+            send_telegram_alert_long(msg)
         time.sleep(0.5)
 
 if __name__ == "__main__":

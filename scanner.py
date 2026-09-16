@@ -121,14 +121,7 @@ def scan_market():
     ]
     print(f"Tìm thấy {len(matched_candidates)} coin có biến động >= {PRICE_CHANGE_THRESHOLD}%")
     
-    matched_candidates_long = [
-        t for t in tickers
-        if isinstance(t, dict) and t.get("symbol", "").endswith("USDT") and float(t.get("priceChangePercent", 0)) >= PRICE_CHANGE_THRESHOLD_LONG
-    ]
-
-    print(f"Tìm thấy {len(matched_candidates_long)} coin có biến động >= {PRICE_CHANGE_THRESHOLD_LONG}%")
     
-
     for coin in matched_candidates:
         symbol = coin["symbol"]
         price = float(coin["lastPrice"])
@@ -153,6 +146,13 @@ def scan_market():
             send_telegram_alert(msg)
         time.sleep(0.5)
 
+    matched_candidates_long = [
+        t for t in tickers
+        if isinstance(t, dict) and t.get("symbol", "").endswith("USDT") and float(t.get("priceChangePercent", 0)) >= PRICE_CHANGE_THRESHOLD_LONG
+    ]
+
+    print(f"Tìm thấy {len(matched_candidates_long)} coin có biến động >= {PRICE_CHANGE_THRESHOLD_LONG}%")
+    
     for coin in matched_candidates_long:
         symbol = coin["symbol"]
         price = float(coin["lastPrice"])

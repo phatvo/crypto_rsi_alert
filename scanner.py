@@ -6,10 +6,14 @@ import pandas as pd
 # Cấu hình ngưỡng lọc
 PRICE_CHANGE_THRESHOLD = 65.0  # Tăng trưởng 24h > 60%
 RSI_4H_THRESHOLD = 80.0          # RSI 4h > 80
-PRICE_CHANGE_THRESHOLD_LONG = 33.0  # Tăng trưởng 24h > 33%
-RSI_4H_THRESHOLD_LONG = 50.0          # RSI 4h > 50
 RSI_12H_THRESHOLD = 85.0          # RSI 12h > 85
 RSI_24H_THRESHOLD = 85.0          # RSI 24h > 85
+PRICE_CHANGE_THRESHOLD_LONG = 33.0  # Tăng trưởng 24h > 33%
+RSI_4H_THRESHOLD_LONG = 50.0          # RSI 4h > 50
+RSI_12H_THRESHOLD_LONG = 73.0          # RSI 12h > 73
+RSI_24H_THRESHOLD_LONG = 73.0          # RSI 24h > 73
+RSI_12H_THRESHOLD_LONG_UP = 85.0          # RSI 12h < 85
+RSI_24H_THRESHOLD_LONG_UP = 85.0          # RSI 24h < 85
 CHECK_INTERVAL_SECONDS = 300  # Quét lại sau mỗi 5 phút (300 giây)
 
 # Lấy thông tin từ GitHub Secrets
@@ -164,15 +168,15 @@ def scan_market():
 
         print(f"-> {symbol}: Price Change = +{price_change:.2f}%, RSI 4h = {rsi_4h}, 12h = {rsi_12h}, 24h = {rsi_24h}")
 
-        if rsi_4h > RSI_4H_THRESHOLD_LONG and rsi_12h > RSI_12H_THRESHOLD and rsi_24h > RSI_24H_THRESHOLD:
+        if rsi_4h > RSI_4H_THRESHOLD_LONG and rsi_12h > RSI_12H_THRESHOLD_LONG and rsi_24h > RSI_24H_THRESHOLD_LONG and rsi_12h < RSI_12H_THRESHOLD_LONG_UP and rsi_24h < RSI_24H_THRESHOLD_LONG_UP:
             msg = (
                 f"🚨 *COIN ALERT THỎA ĐIỀU KIỆN LONG!*\n"
                 f"• *Symbol*: `{symbol}`\n"
                 f"• *Giá hiện tại*: `{price}`\n"
                 f"• *Price Change (24h) >* `{PRICE_CHANGE_THRESHOLD_LONG:.2f}%` : `+{price_change:.2f}%`\n"
                 f"• *RSI (4h) >* `{RSI_4H_THRESHOLD_LONG}`: `{rsi_4h}`\n"
-                f"• *RSI (12h) >* `{RSI_12H_THRESHOLD}`: `{rsi_12h}`\n"
-                f"• *RSI (24h) >* `{RSI_24H_THRESHOLD}`: `{rsi_24h}`\n"
+                f"• *RSI (12h) >* `{RSI_12H_THRESHOLD_LONG}` và < `{RSI_12H_THRESHOLD_LONG_UP}`: `{rsi_12h}`\n"
+                f"• *RSI (24h) >* `{RSI_24H_THRESHOLD_LONG}` và < `{RSI_24H_THRESHOLD_LONG_UP}`: `{rsi_24h}`\n"
             )
             send_telegram_alert_long(msg)
         time.sleep(0.5)

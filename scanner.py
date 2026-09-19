@@ -182,7 +182,7 @@ def scan_market():
               rsi_4h > RSI_4H_THRESHOLD_LONG and 
               rsi_12h > RSI_12H_THRESHOLD_LONG and rsi_24h > RSI_24H_THRESHOLD_LONG):
             
-            print(f"\n--- [Nhiệm vụ 2] Tìm coin có biến động 24h > {PRICE_CHANGE_THRESHOLD_LONG}% và RSI thỏa đk long---")
+            # print(f"\n--- [Nhiệm vụ 2] Tìm coin có biến động 24h > {PRICE_CHANGE_THRESHOLD_LONG}% và RSI thỏa đk long---")
             candle_info = check_15m_candles(symbol)
             if not candle_info:
                 continue

@@ -102,13 +102,13 @@ def check_15m_candles(symbol: str):
             return None
 
         # Nến hiện tại (n) - index -1
-        open_n = float(data[-1])
-        close_n = float(data[-1])  # Giá hiện tại
+        open_n = float(data[-1])   # Vị trí: Giá mở cửa
+        close_n = float(data[-1])  # Vị trí: Giá đóng cửa / hiện tại
         change_n = ((close_n - open_n) / open_n) * 100
 
         # Nến liền trước (n-1) - index -2
-        open_prev = float(data[-2])
-        close_prev = float(data[-2])
+        open_prev = float(data[-2])   # Vị trí: Giá mở cửa
+        close_prev = float(data[-2])  # Vị trí: Giá đóng cửa
         change_prev = ((close_prev - open_prev) / open_prev) * 100
 
         return {

@@ -266,7 +266,7 @@ def scan_market():
             send_telegram_alert(msg)
 
         # Trường hợp 2: Cảnh báo LONG (24h >= 33%, RSI 4h > 50, 73 < RSI 12h, 24h < 85)
-       elif (price_change >= PRICE_CHANGE_THRESHOLD_LONG and 
+        elif (price_change >= PRICE_CHANGE_THRESHOLD_LONG and 
               rsi_4h > RSI_4H_THRESHOLD_LONG and 
               rsi_12h > RSI_12H_THRESHOLD_LONG and rsi_24h > RSI_24H_THRESHOLD_LONG):
             

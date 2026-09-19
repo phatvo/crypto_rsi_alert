@@ -326,10 +326,10 @@ def scan_market():
     current_minute = datetime.now().minute
 
     # Trừ hao máy chủ trễ 1-2 phút: chấp nhận các phút 00, 01, 02 và 30, 31, 32
-    if current_minute % 30:
+    if (current_minute % 30) < 3:
         print(f"-> [Gửi báo cáo] Đúng mốc 30 phút (phút hiện tại là :{current_minute:02d})")
         send_telegram_rsi_status(rsi_bot_status_msg)
-    elif:
+    else:
         print(f"-> [Bỏ qua báo cáo] Phút hiện tại là :{current_minute:02d} (chỉ gửi vào mốc :00 và :30)")
     # -------------------------------------------------------------
     # NHIỆM VỤ 2: Quét 2 nến 15m liên tiếp > 3% cho coin 24h > 5.5% (Gửi vào TELEGRAM_CHAT_ID_LONG)

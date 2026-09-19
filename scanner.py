@@ -151,7 +151,7 @@ def scan_market():
         t for t in tickers
         if isinstance(t, dict) and t.get("symbol", "").endswith("USDT") and float(t.get("priceChangePercent", 0)) >= PRICE_CHANGE_THRESHOLD_LONG #PRICE_CHANGE_THRESHOLD
     ]
-    print(f"\n--- [Nhiệm vụ 1] Tìm thấy {len(matched_candidates)} coin có biến động >= {PRICE_CHANGE_THRESHOLD}% ---")
+    print(f"\n--- [Nhiệm vụ 1] Tìm thấy {len(matched_candidates)} coin có biến động >= {PRICE_CHANGE_THRESHOLD_LONG}% ---")
     
     for coin in matched_candidates:
         symbol = coin["symbol"]

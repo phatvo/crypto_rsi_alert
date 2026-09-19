@@ -10,10 +10,10 @@ RSI_4H_THRESHOLD = 80.0            # RSI 4h > 80
 RSI_12H_THRESHOLD = 85.0           # RSI 12h > 85
 RSI_24H_THRESHOLD = 85.0           # RSI 24h > 85
 
-PRICE_CHANGE_THRESHOLD_LONG = 33.0  # Tăng trưởng 24h > 33%
-RSI_4H_THRESHOLD_LONG = 50.0          # RSI 4h > 50
-RSI_12H_THRESHOLD_LONG = 73.0          # RSI 12h > 73
-RSI_24H_THRESHOLD_LONG = 73.0          # RSI 24h > 73
+PRICE_CHANGE_THRESHOLD_LONG = 29.0  # Tăng trưởng 24h > 19%
+RSI_4H_THRESHOLD_LONG = 45.0          # RSI 4h > 50
+RSI_12H_THRESHOLD_LONG = 70.0          # RSI 12h > 73
+RSI_24H_THRESHOLD_LONG = 70.0          # RSI 24h > 73
 RSI_12H_THRESHOLD_LONG_UP = 85.0          # RSI 12h < 85
 RSI_24H_THRESHOLD_LONG_UP = 85.0          # RSI 24h < 85
 
@@ -180,15 +180,28 @@ def scan_market():
         # Trường hợp 2: Cảnh báo LONG (24h >= 33%, RSI 4h > 50, 73 < RSI 12h, 24h < 85)
         elif (price_change >= PRICE_CHANGE_THRESHOLD_LONG and 
               rsi_4h > RSI_4H_THRESHOLD_LONG and 
-              rsi_12h > RSI_12H_THRESHOLD and rsi_24h > RSI_24H_THRESHOLD):
+              rsi_12h > RSI_12H_THRESHOLD_LONG and rsi_24h > RSI_24H_THRESHOLD_LONG):
+            
+            print(f"\n--- [Nhiệm vụ 2] Tìm thấy {len(candidates_15m)} coin có biến động 24h > {PRICE_CHANGE_THRESHOLD_LONG}% và RSI thỏa đk long---")
+            candle_info = check_15m_candles(symbol)
+            if not candle_info:
+                continue
+
+            change_n = candle_info["change_n"]
+            change_prev = candle_info["change_prev"]
+            current_price = candle_info["current_price"]
+
             msg = (
-                f"🚨 *COIN ALERT THỎA ĐIỀU KIỆN LONG!*\n"
+                f"⚡ *COIN ALERT THỎA ĐIỀU KIỆN LONG!*\n"
                 f"• *Symbol*: `{symbol}`\n"
                 f"• *Giá hiện tại*: `{price}`\n"
                 f"• *Price Change (24h)*: `+{price_change:.2f}%` (>= {PRICE_CHANGE_THRESHOLD_LONG}%)\n"
                 f"• *RSI (4h)*: `{rsi_4h}` (> {RSI_4H_THRESHOLD_LONG})\n"
-                f"• *RSI (12h)*: `{rsi_12h}` (> {RSI_12H_THRESHOLD})\n"
-                f"• *RSI (24h)*: `{rsi_24h}` (> {RSI_24H_THRESHOLD})\n"
+                f"• *RSI (12h)*: `{rsi_12h}` (> {RSI_12H_THRESHOLD_LONG})\n"
+                f"• *RSI (24h)*: `{rsi_24h}` (> {RSI_24H_THRESHOLD_LONG})\n"
+                f"• *Nến 15m hiện tại (n)*: `+{change_n:.2f}%` (> {THRESHOLD_15M_PERCENT}%)\n"
+                f"• *Nến 15m trước đó (n-1)*: `+{change_prev:.2f}%` (> {THRESHOLD_15M_PERCENT}%)\n"
+                f"• *Tổng tăng 2 nến 15m*: `+{total_15m:.2f}%`\n"
             )
             send_telegram_alert_long(msg)
 
@@ -197,40 +210,40 @@ def scan_market():
     # -------------------------------------------------------------
     # NHIỆM VỤ 2: Quét 2 nến 15m liên tiếp > 3% cho coin 24h > 5.5% (Gửi vào TELEGRAM_CHAT_ID_LONG)
     # -------------------------------------------------------------
-    candidates_15m = [
-        t for t in tickers
-        if isinstance(t, dict) and t.get("symbol", "").endswith("USDT") and float(t.get("priceChangePercent", 0)) > PRICE_CHANGE_24H_THRESHOLD
-    ]
-    print(f"\n--- [Nhiệm vụ 2] Tìm thấy {len(candidates_15m)} coin có biến động 24h > {PRICE_CHANGE_24H_THRESHOLD}% ---")
+    # candidates_15m = [
+    #     t for t in tickers
+    #     if isinstance(t, dict) and t.get("symbol", "").endswith("USDT") and float(t.get("priceChangePercent", 0)) > PRICE_CHANGE_24H_THRESHOLD
+    # ]
+    # print(f"\n--- [Nhiệm vụ 2] Tìm thấy {len(candidates_15m)} coin có biến động 24h > {PRICE_CHANGE_24H_THRESHOLD}% ---")
 
-    for coin in candidates_15m:
-        symbol = coin["symbol"]
-        price_change_24h = float(coin["priceChangePercent"])
+    # for coin in candidates_15m:
+    #     symbol = coin["symbol"]
+    #     price_change_24h = float(coin["priceChangePercent"])
         
-        candle_info = check_15m_candles(symbol)
-        if not candle_info:
-            continue
+    #     candle_info = check_15m_candles(symbol)
+    #     if not candle_info:
+    #         continue
 
-        change_n = candle_info["change_n"]
-        change_prev = candle_info["change_prev"]
-        current_price = candle_info["current_price"]
+    #     change_n = candle_info["change_n"]
+    #     change_prev = candle_info["change_prev"]
+    #     current_price = candle_info["current_price"]
 
-        print(f"-> {symbol} (24h: +{price_change_24h:.2f}%): Nến n = {change_n:+.2f}%, Nến n-1 = {change_prev:+.2f}%")
+    #     print(f"-> {symbol} (24h: +{price_change_24h:.2f}%): Nến n = {change_n:+.2f}%, Nến n-1 = {change_prev:+.2f}%")
 
-        if change_n > THRESHOLD_15M_PERCENT and change_prev > THRESHOLD_15M_PERCENT:
-            total_15m = round(change_n + change_prev, 2)
-            msg = (
-                f"⚡ *CẢNH BÁO PUMP 2 NẾN 15M LIÊN TIẾP!*\n"
-                f"• *Symbol*: `{symbol}`\n"
-                f"• *Giá hiện tại*: `{current_price}`\n"
-                f"• *Tăng 24h*: `+{price_change_24h:.2f}%` (> {PRICE_CHANGE_24H_THRESHOLD}%)\n"
-                f"• *Nến 15m hiện tại (n)*: `+{change_n:.2f}%` (> {THRESHOLD_15M_PERCENT}%)\n"
-                f"• *Nến 15m trước đó (n-1)*: `+{change_prev:.2f}%` (> {THRESHOLD_15M_PERCENT}%)\n"
-                f"• *Tổng tăng 2 nến 15m*: `+{total_15m:.2f}%`\n"
-            )
-            send_telegram_alert_long(msg)
+    #     if change_n > THRESHOLD_15M_PERCENT and change_prev > THRESHOLD_15M_PERCENT:
+    #         total_15m = round(change_n + change_prev, 2)
+    #         msg = (
+    #             f"⚡ *CẢNH BÁO PUMP 2 NẾN 15M LIÊN TIẾP!*\n"
+    #             f"• *Symbol*: `{symbol}`\n"
+    #             f"• *Giá hiện tại*: `{current_price}`\n"
+    #             f"• *Tăng 24h*: `+{price_change_24h:.2f}%` (> {PRICE_CHANGE_24H_THRESHOLD}%)\n"
+    #             f"• *Nến 15m hiện tại (n)*: `+{change_n:.2f}%` (> {THRESHOLD_15M_PERCENT}%)\n"
+    #             f"• *Nến 15m trước đó (n-1)*: `+{change_prev:.2f}%` (> {THRESHOLD_15M_PERCENT}%)\n"
+    #             f"• *Tổng tăng 2 nến 15m*: `+{total_15m:.2f}%`\n"
+    #         )
+    #         send_telegram_alert_long(msg)
             
-        time.sleep(0.3)
+    #     time.sleep(0.3)
     ############################################
     # matched_candidates_long = [
     #     t for t in tickers

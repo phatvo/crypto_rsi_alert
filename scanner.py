@@ -153,7 +153,7 @@ def scan_market():
     ]
     print(f"\n--- [Nhiệm vụ 1] Tìm thấy {len(matched_candidates)} coin có biến động >= {PRICE_CHANGE_THRESHOLD}% ---")
     
-   for coin in matched_candidates:
+    for coin in matched_candidates:
         symbol = coin["symbol"]
         price = float(coin["lastPrice"])
         price_change = float(coin["priceChangePercent"])

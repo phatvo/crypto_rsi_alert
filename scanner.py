@@ -2,6 +2,7 @@ import os
 import time
 import requests
 import pandas as pd
+from datetime import datetime
 
 # ================= CẤU HÌNH NGƯỠNG LỌC =================
 # Ngưỡng quét RSI & 24h (Gửi về TELEGRAM_CHAT_ID)
@@ -299,7 +300,7 @@ def scan_market():
                     f"• *Nến 4h trước đó (n-1)*: `+{change_prev:.2f}%`\n"
                     f"• *Tỷ lệ nến 4h n/abs((n-1))*: `{ratio_4h}x` (>= {THRESHOLD_4H_RATIO}x)\n"
                     f"• *Tổng tăng 2 nến 4h*: `+{total_4h:.2f}%`\n"
-                    f"• *Nến 1h hiện tại (n)*: `+{change_n_1h:.2f}%`\n"
+                    f"• *Nến 1h hiện tại (n)*: `{change_n_1h:.2f}%`\n"
                 )
                 send_telegram_alert_long(msg)
 
@@ -321,7 +322,15 @@ def scan_market():
 
         # Nghỉ giữa các coin ở cuối vòng lặp
         time.sleep(0.3)
-    send_telegram_rsi_status(rsi_bot_status_msg)
+    # Chỉ gửi báo cáo trạng thái vào các mốc 30 phút (ví dụ: 1:00, 1:30, 2:00, 2:30, ...)
+    current_minute = datetime.now().minute
+
+    # Trừ hao máy chủ trễ 1-2 phút: chấp nhận các phút 00, 01, 02 và 30, 31, 32
+    if current_minute % 30 in:
+        print(f"-> [Gửi báo cáo] Đúng mốc 30 phút (phút hiện tại là :{current_minute:02d})")
+        send_telegram_rsi_status(rsi_bot_status_msg)
+    else:
+        print(f"-> [Bỏ qua báo cáo] Phút hiện tại là :{current_minute:02d} (chỉ gửi vào mốc :00 và :30)")
     # -------------------------------------------------------------
     # NHIỆM VỤ 2: Quét 2 nến 15m liên tiếp > 3% cho coin 24h > 5.5% (Gửi vào TELEGRAM_CHAT_ID_LONG)
     # -------------------------------------------------------------

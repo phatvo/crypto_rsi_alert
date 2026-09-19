@@ -99,6 +99,35 @@ def get_binance_rsi(symbol: str, interval: str, limit: int = 100) -> float:
         print(f"Lỗi lấy nến {symbol} ({interval}): {e}")
         return 0.0
 
+def check_15m_candles(symbol: str):
+    """Lấy dữ liệu nến 15m và tính biến động nến hiện tại (n) và nến trước (n-1)"""
+    url = "https://data-api.binance.vision/api/v3/klines"
+    params = {"symbol": symbol, "interval": "15m", "limit": 5}
+    try:
+        resp = requests.get(url, params=params, timeout=10)
+        data = resp.json()
+        if not isinstance(data, list) or len(data) < 2:
+            return None
+
+        # Nến hiện tại (n) - index -1
+        open_n = float(data[-1])
+        close_n = float(data[-1])  # Giá hiện tại
+        change_n = ((close_n - open_n) / open_n) * 100
+
+        # Nến liền trước (n-1) - index -2
+        open_prev = float(data[-2])
+        close_prev = float(data[-2])
+        change_prev = ((close_prev - open_prev) / open_prev) * 100
+
+        return {
+            "current_price": close_n,
+            "change_n": round(change_n, 2),
+            "change_prev": round(change_prev, 2)
+        }
+    except Exception as e:
+        print(f"Lỗi lấy nến 15m của {symbol}: {e}")
+        return None
+
 def scan_market():
     """Quét thị trường 1 lần"""
     print("Bắt đầu quét biến động giá 24h...")
@@ -180,6 +209,44 @@ def scan_market():
     #         )
     #         send_telegram_alert_long(msg)
     #     time.sleep(0.5)
+
+    candidates = [
+        t for t in tickers
+        if isinstance(t, dict) and t.get("symbol", "").endswith("USDT") and float(t.get("priceChangePercent", 0)) > PRICE_CHANGE_THRESHOLD
+    ]
+
+    print(f"Tìm thấy {len(candidates)} coin USDT có biến động 24h > {PRICE_CHANGE_THRESHOLD}%")
+
+    # Bước 2: Kiểm tra nến 15m đối với từng coin trong danh sách trên
+    for coin in candidates:
+        symbol = coin["symbol"]
+        price_change_24h = float(coin["priceChangePercent"])
+        
+        candle_info = check_15m_candles(symbol)
+        if not candle_info:
+            continue
+
+        change_n = candle_info["change_n"]
+        change_prev = candle_info["change_prev"]
+        current_price = candle_info["current_price"]
+
+        print(f"-> {symbol} (24h: +{price_change_24h:.2f}%): Nến (n) = {change_n:+.2f}%, Nến (n-1) = {change_prev:+.2f}%")
+
+        # Điều kiện: Cả nến hiện tại (n) và nến trước (n-1) đều tăng > 3%
+        if change_n > THRESHOLD_15M_PERCENT and change_prev > THRESHOLD_15M_PERCENT:
+            total_15m = round(change_n + change_prev, 2)
+            msg = (
+                f"⚡ *CẢNH BÁO PUMP 2 NẾN 15M LIÊN TIẾP!*\n"
+                f"• *Symbol*: `{symbol}`\n"
+                f"• *Giá hiện tại*: `{current_price}`\n"
+                f"• *Tăng 24h*: `+{price_change_24h:.2f}%` (> {PRICE_CHANGE_24H_THRESHOLD}%)\n"
+                f"• *Nến 15m hiện tại (n)*: `+{change_n:.2f}%` (> {THRESHOLD_15M_PERCENT}%)\n"
+                f"• *Nến 15m trước đó (n-1)*: `+{change_prev:.2f}%` (> {THRESHOLD_15M_PERCENT}%)\n"
+                f"• *Tổng tăng 2 nến 15m*: `+{total_15m:.2f}%`\n"
+            )
+            send_telegram_alert_long(msg)
+            
+        time.sleep(0.3)
 
 if __name__ == "__main__":
     scan_market()

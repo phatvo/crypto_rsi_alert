@@ -150,36 +150,36 @@ def scan_market():
             send_telegram_alert(msg)
         time.sleep(0.5)
 
-    matched_candidates_long = [
-        t for t in tickers
-        if isinstance(t, dict) and t.get("symbol", "").endswith("USDT") and float(t.get("priceChangePercent", 0)) >= PRICE_CHANGE_THRESHOLD_LONG
-    ]
+    # matched_candidates_long = [
+    #     t for t in tickers
+    #     if isinstance(t, dict) and t.get("symbol", "").endswith("USDT") and float(t.get("priceChangePercent", 0)) >= PRICE_CHANGE_THRESHOLD_LONG
+    # ]
 
-    print(f"Tìm thấy {len(matched_candidates_long)} coin có biến động >= {PRICE_CHANGE_THRESHOLD_LONG}%")
+    # print(f"Tìm thấy {len(matched_candidates_long)} coin có biến động >= {PRICE_CHANGE_THRESHOLD_LONG}%")
     
-    for coin in matched_candidates_long:
-        symbol = coin["symbol"]
-        price = float(coin["lastPrice"])
-        price_change = float(coin["priceChangePercent"])
+    # for coin in matched_candidates_long:
+    #     symbol = coin["symbol"]
+    #     price = float(coin["lastPrice"])
+    #     price_change = float(coin["priceChangePercent"])
 
-        rsi_4h = get_binance_rsi(symbol, "4h")
-        rsi_12h = get_binance_rsi(symbol, "12h")
-        rsi_24h = get_binance_rsi(symbol, "1d")
+    #     rsi_4h = get_binance_rsi(symbol, "4h")
+    #     rsi_12h = get_binance_rsi(symbol, "12h")
+    #     rsi_24h = get_binance_rsi(symbol, "1d")
 
-        print(f"-> {symbol}: Price Change = +{price_change:.2f}%, RSI 4h = {rsi_4h}, 12h = {rsi_12h}, 24h = {rsi_24h}")
+    #     print(f"-> {symbol}: Price Change = +{price_change:.2f}%, RSI 4h = {rsi_4h}, 12h = {rsi_12h}, 24h = {rsi_24h}")
 
-        if rsi_4h > RSI_4H_THRESHOLD_LONG and rsi_12h > RSI_12H_THRESHOLD_LONG and rsi_24h > RSI_24H_THRESHOLD_LONG and rsi_12h < RSI_12H_THRESHOLD_LONG_UP and rsi_24h < RSI_24H_THRESHOLD_LONG_UP:
-            msg = (
-                f"🚨 *COIN ALERT THỎA ĐIỀU KIỆN LONG!*\n"
-                f"• *Symbol*: `{symbol}`\n"
-                f"• *Giá hiện tại*: `{price}`\n"
-                f"• *Price Change (24h) >* `{PRICE_CHANGE_THRESHOLD_LONG:.2f}%` : `+{price_change:.2f}%`\n"
-                f"• *RSI (4h) >* `{RSI_4H_THRESHOLD_LONG}`: `{rsi_4h}`\n"
-                f"• *RSI (12h) >* `{RSI_12H_THRESHOLD_LONG}` và < `{RSI_12H_THRESHOLD_LONG_UP}`: `{rsi_12h}`\n"
-                f"• *RSI (24h) >* `{RSI_24H_THRESHOLD_LONG}` và < `{RSI_24H_THRESHOLD_LONG_UP}`: `{rsi_24h}`\n"
-            )
-            send_telegram_alert_long(msg)
-        time.sleep(0.5)
+    #     if rsi_4h > RSI_4H_THRESHOLD_LONG and rsi_12h > RSI_12H_THRESHOLD_LONG and rsi_24h > RSI_24H_THRESHOLD_LONG and rsi_12h < RSI_12H_THRESHOLD_LONG_UP and rsi_24h < RSI_24H_THRESHOLD_LONG_UP:
+    #         msg = (
+    #             f"🚨 *COIN ALERT THỎA ĐIỀU KIỆN LONG!*\n"
+    #             f"• *Symbol*: `{symbol}`\n"
+    #             f"• *Giá hiện tại*: `{price}`\n"
+    #             f"• *Price Change (24h) >* `{PRICE_CHANGE_THRESHOLD_LONG:.2f}%` : `+{price_change:.2f}%`\n"
+    #             f"• *RSI (4h) >* `{RSI_4H_THRESHOLD_LONG}`: `{rsi_4h}`\n"
+    #             f"• *RSI (12h) >* `{RSI_12H_THRESHOLD_LONG}` và < `{RSI_12H_THRESHOLD_LONG_UP}`: `{rsi_12h}`\n"
+    #             f"• *RSI (24h) >* `{RSI_24H_THRESHOLD_LONG}` và < `{RSI_24H_THRESHOLD_LONG_UP}`: `{rsi_24h}`\n"
+    #         )
+    #         send_telegram_alert_long(msg)
+    #     time.sleep(0.5)
 
 if __name__ == "__main__":
     scan_market()

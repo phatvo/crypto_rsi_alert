@@ -279,7 +279,7 @@ def scan_market():
             current_price = candle_info["current_price"]
 
             # Điều kiện: 2 nến 4h đều là nến xanh (tăng) và nến n tăng gấp >= 2 lần nến n-1
-            if change_n > 0 and change_prev > 0 and (change_n / change_prev) >= THRESHOLD_4H_RATIO:
+            if change_n > 0 and (change_n / abs(change_prev)) >= THRESHOLD_4H_RATIO:
                 total_4h = round(change_n + change_prev, 2)
                 ratio_4h = round(change_n / change_prev, 2)
 
@@ -297,7 +297,7 @@ def scan_market():
                     f"• *RSI (24h)*: `{rsi_24h}` (> {RSI_24H_THRESHOLD_LONG})\n"
                     f"• *Nến 4h hiện tại (n)*: `+{change_n:.2f}%`\n"
                     f"• *Nến 4h trước đó (n-1)*: `+{change_prev:.2f}%`\n"
-                    f"• *Tỷ lệ nến 4h n/(n-1)*: `{ratio_4h}x` (>= {THRESHOLD_4H_RATIO}x)\n"
+                    f"• *Tỷ lệ nến 4h n/abs((n-1))*: `{ratio_4h}x` (>= {THRESHOLD_4H_RATIO}x)\n"
                     f"• *Tổng tăng 2 nến 4h*: `+{total_4h:.2f}%`\n"
                     f"• *Nến 1h hiện tại (n)*: `+{change_n_1h:.2f}%`\n"
                 )

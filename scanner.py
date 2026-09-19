@@ -190,6 +190,7 @@ def scan_market():
             change_n = candle_info["change_n"]
             change_prev = candle_info["change_prev"]
             current_price = candle_info["current_price"]
+            total_15m = round(change_n + change_prev, 2)
 
             msg = (
                 f"⚡ *COIN ALERT THỎA ĐIỀU KIỆN LONG!*\n"

@@ -101,14 +101,16 @@ def check_15m_candles(symbol: str):
         if not isinstance(data, list) or len(data) < 2:
             return None
 
-        # Nến hiện tại (n) - index -1
-        open_n = float(data[-1])   # Vị trí: Giá mở cửa
-        close_n = float(data[-1])  # Vị trí: Giá đóng cửa / hiện tại
+        # Trích xuất giá mở cửa và đóng cửa của nến hiện tại (n)
+        _, open_n_str, _, _, close_n_str, *_ = data[-1]
+        open_n = float(open_n_str)
+        close_n = float(close_n_str)
         change_n = ((close_n - open_n) / open_n) * 100
 
-        # Nến liền trước (n-1) - index -2
-        open_prev = float(data[-2])   # Vị trí: Giá mở cửa
-        close_prev = float(data[-2])  # Vị trí: Giá đóng cửa
+        # Trích xuất giá mở cửa và đóng cửa của nến trước đó (n-1)
+        _, open_prev_str, _, _, close_prev_str, *_ = data[-2]
+        open_prev = float(open_prev_str)
+        close_prev = float(close_prev_str)
         change_prev = ((close_prev - open_prev) / open_prev) * 100
 
         return {

@@ -30,4 +30,4 @@ jobs:
           TELEGRAM_CHAT_ID_LONG: ${{ secrets.TELEGRAM_CHAT_ID_LONG }}
         run: |
           python scanner.py
-          python scanner_flong.py
+

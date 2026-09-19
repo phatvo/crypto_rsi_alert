@@ -190,21 +190,21 @@ def scan_market():
             change_n = candle_info["change_n"]
             change_prev = candle_info["change_prev"]
             current_price = candle_info["current_price"]
-            total_15m = round(change_n + change_prev, 2)
-
-            msg = (
-                f"⚡ *COIN ALERT THỎA ĐIỀU KIỆN LONG!*\n"
-                f"• *Symbol*: `{symbol}`\n"
-                f"• *Giá hiện tại*: `{price}`\n"
-                f"• *Price Change (24h)*: `+{price_change:.2f}%` (>= {PRICE_CHANGE_THRESHOLD_LONG}%)\n"
-                f"• *RSI (4h)*: `{rsi_4h}` (> {RSI_4H_THRESHOLD_LONG})\n"
-                f"• *RSI (12h)*: `{rsi_12h}` (> {RSI_12H_THRESHOLD_LONG})\n"
-                f"• *RSI (24h)*: `{rsi_24h}` (> {RSI_24H_THRESHOLD_LONG})\n"
-                f"• *Nến 15m hiện tại (n)*: `+{change_n:.2f}%` (> {THRESHOLD_15M_PERCENT}%)\n"
-                f"• *Nến 15m trước đó (n-1)*: `+{change_prev:.2f}%` (> {THRESHOLD_15M_PERCENT}%)\n"
-                f"• *Tổng tăng 2 nến 15m*: `+{total_15m:.2f}%`\n"
-            )
-            send_telegram_alert_long(msg)
+            if change_n > THRESHOLD_15M_PERCENT and change_prev > THRESHOLD_15M_PERCENT:
+                total_15m = round(change_n + change_prev, 2)
+                msg = (
+                    f"⚡ *COIN ALERT THỎA ĐIỀU KIỆN LONG!*\n"
+                    f"• *Symbol*: `{symbol}`\n"
+                    f"• *Giá hiện tại*: `{price}`\n"
+                    f"• *Price Change (24h)*: `+{price_change:.2f}%` (>= {PRICE_CHANGE_THRESHOLD_LONG}%)\n"
+                    f"• *RSI (4h)*: `{rsi_4h}` (> {RSI_4H_THRESHOLD_LONG})\n"
+                    f"• *RSI (12h)*: `{rsi_12h}` (> {RSI_12H_THRESHOLD_LONG})\n"
+                    f"• *RSI (24h)*: `{rsi_24h}` (> {RSI_24H_THRESHOLD_LONG})\n"
+                    f"• *Nến 15m hiện tại (n)*: `+{change_n:.2f}%` (> {THRESHOLD_15M_PERCENT}%)\n"
+                    f"• *Nến 15m trước đó (n-1)*: `+{change_prev:.2f}%` (> {THRESHOLD_15M_PERCENT}%)\n"
+                    f"• *Tổng tăng 2 nến 15m*: `+{total_15m:.2f}%`\n"
+                )
+                send_telegram_alert_long(msg)
 
         # Nghỉ giữa các coin ở cuối vòng lặp
         time.sleep(0.3)

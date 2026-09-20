@@ -84,7 +84,7 @@ def send_telegram_alert_long(message: str):
         resp = requests.post(url, json=payload, timeout=10)
         res = resp.json()
         if res.get("ok"):
-            print("-> [Thành công] Đã gửi cảnh báo 15m đến Telegram LONG!")
+            print("-> [Thành công] Đã gửi cảnh báo đến Telegram LONG!")
         else:
             print(f"-> [Lỗi Telegram]: {res.get('description')}")
     except Exception as e:

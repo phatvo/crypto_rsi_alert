@@ -323,8 +323,8 @@ def scan_market():
                     f"• *Tỷ lệ nến 4h n/abs((n-1))*: `{ratio_4h}x` (>= {THRESHOLD_4H_RATIO}x)\n"
                     f"• *Tổng tăng 2 nến 4h*: `+{total_4h:.2f}%`\n"
                     f"• *Nến 1h hiện tại (n)*: `{change_n_1h:.2f}%`\n"
-                    f"• *Take Profit (TP)*: `{tp_cur:.4f}`\n"
-                    f"• *Stop Loss (SL)*: `{sl_cur:.4f}`\n"
+                    f"• *Take Profit (TP)*: `{tp_cur:.5f}`\n"
+                    f"• *Stop Loss (SL)*: `{sl_cur:.5f}`\n"
                 )
                 send_telegram_alert_long(msg)
 

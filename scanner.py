@@ -318,12 +318,12 @@ def scan_market():
                     f"• *RSI (12h)*: `{rsi_12h}` (> {RSI_12H_THRESHOLD_LONG})\n"
                     f"• *RSI (24h)*: `{rsi_24h}` (> {RSI_24H_THRESHOLD_LONG})\n"
                     f"• *Nến 4h hiện tại (n)*: `+{change_n:.2f}%`\n"
-                    f"• *Nến 4h trước đó (n-1)*: `+{change_prev:.2f}%`\n"
+                    f"• *Nến 4h trước đó (n-1)*: `{change_prev:.2f}%`\n"
                     f"• *Tỷ lệ nến 4h n/abs((n-1))*: `{ratio_4h}x` (>= {THRESHOLD_4H_RATIO}x)\n"
                     f"• *Tổng tăng 2 nến 4h*: `+{total_4h:.2f}%`\n"
                     f"• *Nến 1h hiện tại (n)*: `{change_n_1h:.2f}%`\n"
-                    f"• *TP : {tp_cur:.2f}% *`\n"
-                    f"• *SL : {sl_cur:.2f}% *`\n"
+                    f"• *TP : {tp_cur:.2f}% *\n"
+                    f"• *SL : {sl_cur:.2f}% *\n"
                 )
                 send_telegram_alert_long(msg)
 

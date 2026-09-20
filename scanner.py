@@ -84,7 +84,7 @@ def send_telegram_alert_long(message: str):
         resp = requests.post(url, json=payload, timeout=10)
         res = resp.json()
         if res.get("ok"):
-            print("-> [Thành công] Đã gửi cảnh báo đến Telegram LONG!")
+            print("-> [Thành công] Đã gửi cảnh báo 15m đến Telegram LONG!")
         else:
             print(f"-> [Lỗi Telegram]: {res.get('description')}")
     except Exception as e:
@@ -152,7 +152,7 @@ def check_15m_candles(symbol: str):
         return None
 
 def check_4h_candles(symbol: str):
-    """Lấy dữ liệu nến 15m và tính biến động nến hiện tại (n) và nến trước (n-1)"""
+    """Lấy dữ liệu nến 4h và tính biến động cùng 4 mức giá OHLC của nến n và n-1"""
     url = "https://data-api.binance.vision/api/v3/klines"
     params = {"symbol": symbol, "interval": "4h", "limit": 5}
     try:
@@ -161,25 +161,39 @@ def check_4h_candles(symbol: str):
         if not isinstance(data, list) or len(data) < 2:
             return None
 
-        # Trích xuất giá mở cửa và đóng cửa của nến hiện tại (n)
-        _, open_n_str, _, _, close_n_str, *_ = data[-1]
+        # 1. Trích xuất OHLC của nến hiện tại (n) - data[-1]
+        _, open_n_str, high_n_str, low_n_str, close_n_str, *_ = data[-1]
         open_n = float(open_n_str)
+        high_n = float(high_n_str)
+        low_n = float(low_n_str)
         close_n = float(close_n_str)
         change_n = ((close_n - open_n) / open_n) * 100
 
-        # Trích xuất giá mở cửa và đóng cửa của nến trước đó (n-1)
-        _, open_prev_str, _, _, close_prev_str, *_ = data[-2]
+        # 2. Trích xuất OHLC của nến trước đó (n-1) - data[-2]
+        _, open_prev_str, high_prev_str, low_prev_str, close_prev_str, *_ = data[-2]
         open_prev = float(open_prev_str)
+        high_prev = float(high_prev_str)
+        low_prev = float(low_prev_str)
         close_prev = float(close_prev_str)
         change_prev = ((close_prev - open_prev) / open_prev) * 100
 
         return {
             "current_price": close_n,
             "change_n": round(change_n, 2),
-            "change_prev": round(change_prev, 2)
+            "change_prev": round(change_prev, 2),
+            # OHLC nến n
+            "open_4h_n": open_n,
+            "high_4h_n": high_n,
+            "low_4h_n": low_n,
+            "close_4h_n": close_n,
+            # OHLC nến n-1
+            "open_4h_prev": open_prev,
+            "high_4h_prev": high_prev,
+            "low_4h_prev": low_prev,
+            "close_4h_prev": close_prev
         }
     except Exception as e:
-        print(f"Lỗi lấy nến 15m của {symbol}: {e}")
+        print(f"Lỗi lấy nến 4h của {symbol}: {e}")
         return None
 
 def check_1h_candles(symbol: str):
@@ -279,6 +293,13 @@ def scan_market():
             change_prev = candle_info["change_prev"]
             current_price = candle_info["current_price"]
 
+            # Lấy thông số OHLC của nến 4h (n-1)
+            open_4h_prev = candle_info["open_4h_prev"]
+            high_4h_prev = candle_info["high_4h_prev"]
+            low_4h_prev = candle_info["low_4h_prev"]
+            close_4h_prev = candle_info["close_4h_prev"]
+            tp_cur = low_4h_prev + low_4h_prev * 0.1
+            sl_cur = current_price - low_4h_prev * 0.5
             # Điều kiện: 2 nến 4h đều là nến xanh (tăng) và nến n tăng gấp >= 2 lần nến n-1
             if change_n > 0 and (change_n / abs(change_prev)) >= THRESHOLD_4H_RATIO:
                 total_4h = round(change_n + change_prev, 2)
@@ -301,6 +322,8 @@ def scan_market():
                     f"• *Tỷ lệ nến 4h n/abs((n-1))*: `{ratio_4h}x` (>= {THRESHOLD_4H_RATIO}x)\n"
                     f"• *Tổng tăng 2 nến 4h*: `+{total_4h:.2f}%`\n"
                     f"• *Nến 1h hiện tại (n)*: `{change_n_1h:.2f}%`\n"
+                    f"• *TP : {tp_cur:.2f}% *`\n"
+                    f"• *SL : {sl_cur:.2f}% *`\n"
                 )
                 send_telegram_alert_long(msg)
 

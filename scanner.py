@@ -300,6 +300,7 @@ def scan_market():
             close_4h_prev = candle_info["close_4h_prev"]
             tp_cur = low_4h_prev * 1.1
             sl_cur = current_price - low_4h_prev * 0.05
+
             # Điều kiện: 2 nến 4h đều là nến xanh (tăng) và nến n tăng gấp >= 2 lần nến n-1
             if change_n > 0 and (change_n / abs(change_prev)) >= THRESHOLD_4H_RATIO:
                 total_4h = round(change_n + change_prev, 2)
@@ -322,8 +323,8 @@ def scan_market():
                     f"• *Tỷ lệ nến 4h n/abs((n-1))*: `{ratio_4h}x` (>= {THRESHOLD_4H_RATIO}x)\n"
                     f"• *Tổng tăng 2 nến 4h*: `+{total_4h:.2f}%`\n"
                     f"• *Nến 1h hiện tại (n)*: `{change_n_1h:.2f}%`\n"
-                    f"• *Take Profit (TP)*: `{fmt_price(tp_cur)}`\n"
-                    f"• *Stop Loss (SL)*: `{fmt_price(sl_cur)}`\n"
+                    f"• *Take Profit (TP)*: `{tp_cur}`\n"
+                    f"• *Stop Loss (SL)*: `{sl_cur}`\n"
                 )
                 send_telegram_alert_long(msg)
 

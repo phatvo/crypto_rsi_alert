@@ -298,8 +298,8 @@ def scan_market():
             high_4h_prev = candle_info["high_4h_prev"]
             low_4h_prev = candle_info["low_4h_prev"]
             close_4h_prev = candle_info["close_4h_prev"]
-            tp_cur = low_4h_prev + low_4h_prev * 0.1
-            sl_cur = current_price - low_4h_prev * 0.5
+            tp_cur = low_4h_prev * 1.1
+            sl_cur = current_price - low_4h_prev * 0.05
             # Điều kiện: 2 nến 4h đều là nến xanh (tăng) và nến n tăng gấp >= 2 lần nến n-1
             if change_n > 0 and (change_n / abs(change_prev)) >= THRESHOLD_4H_RATIO:
                 total_4h = round(change_n + change_prev, 2)

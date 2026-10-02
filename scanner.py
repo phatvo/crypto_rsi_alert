@@ -29,12 +29,30 @@ PRICE_CHANGE_THRESHOLD_SHORT = -10.0 # Giảm giá 24h <= -10%
 PRICE_CHANGE_24H_THRESHOLD = 5.5   # Lọc các coin 24h > 5.5% để quét 15m
 THRESHOLD_15M_PERCENT = 3.0        # Cả 2 nến 15m đều tăng > 3%
 
+# ================= CẤU HÌNH GOOGLE SHEET WEBHOOK =================
+GOOGLE_SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxuZEvS0V43a0E5mATuBpGy95cx4S9h7X02JL494cXL8Ncuy_GBioy5q056U_0FQio39A/exec"
+
 # ================= LẤY THÔNG TIN TỪ SECRETS =================
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 TELEGRAM_CHAT_ID_LONG = os.getenv("TELEGRAM_CHAT_ID_LONG")
 TELEGRAM_CHAT_ID_RSI_WEEK = os.getenv("TELEGRAM_CHAT_ID_RSI_WEEK")
 TELEGRAM_CHAT_ID_RSI_BOT_STATUS = os.getenv("TELEGRAM_CHAT_ID_RSI_BOT_STATUS")
+
+
+def append_to_google_sheet(data: dict):
+    """Tự động ghi nối tiếp một dòng tín hiệu mới vào Google Sheet qua Webhook"""
+    if not GOOGLE_SHEET_WEBHOOK_URL:
+        return
+    try:
+        resp = requests.post(GOOGLE_SHEET_WEBHOOK_URL, json=data, timeout=10)
+        if resp.text == "OK":
+            print(f"-> [Google Sheet] Đã ghi nhận {data.get('symbol')} thành công!")
+        else:
+            print(f"-> [Google Sheet phản hồi]: {resp.text}")
+    except Exception as e:
+        print(f"-> [Lỗi ghi Google Sheet]: {e}")
+
 
 def send_telegram_rsi_status(message: str):
     """Gửi nhật ký trạng thái quét qua Telegram"""
@@ -53,6 +71,7 @@ def send_telegram_rsi_status(message: str):
         requests.post(url, json=payload, timeout=10)
     except Exception as e:
         print(f"Lỗi gửi status: {e}")
+
 
 def send_telegram_alert(message: str):
     """Gửi cảnh báo RSI & 24h qua Telegram Bot"""
@@ -75,6 +94,7 @@ def send_telegram_alert(message: str):
     except Exception as e:
         print(f"-> [Lỗi kết nối Telegram]: {e}")
 
+
 def send_telegram_alert_rsi_week(message: str):
     """Gửi cảnh báo RSI Week qua Telegram Bot"""
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID_RSI_WEEK:
@@ -95,6 +115,7 @@ def send_telegram_alert_rsi_week(message: str):
             print(f"-> [Lỗi Telegram]: {res.get('description')}")
     except Exception as e:
         print(f"-> [Lỗi kết nối Telegram]: {e}")
+
 
 def send_telegram_alert_long(message: str):
     """Gửi cảnh báo LONG qua Telegram Bot"""
@@ -117,6 +138,7 @@ def send_telegram_alert_long(message: str):
     except Exception as e:
         print(f"-> [Lỗi kết nối Telegram]: {e}")
 
+
 def calculate_rsi(prices, period: int = 14) -> float:
     """Tính chỉ số RSI theo phương pháp Wilder's Smoothing"""
     if len(prices) < period + 1:
@@ -134,6 +156,7 @@ def calculate_rsi(prices, period: int = 14) -> float:
     rsi = 100 - (100 / (1 + rs))
     return round(float(rsi.iloc[-1]), 2)
 
+
 def get_binance_rsi(symbol: str, interval: str, limit: int = 100) -> float:
     """Lấy dữ liệu nến từ cổng data-api của Binance (Không bị chặn IP)"""
     url = "https://data-api.binance.vision/api/v3/klines"
@@ -146,6 +169,7 @@ def get_binance_rsi(symbol: str, interval: str, limit: int = 100) -> float:
     except Exception as e:
         print(f"Lỗi lấy nến {symbol} ({interval}): {e}")
         return 0.0
+
 
 def get_binance_rsi_week_data(symbol: str, limit: int = 100):
     """Lấy RSI khung tuần của nến hiện tại (n) và nến trước đó (n-1)"""
@@ -172,6 +196,7 @@ def get_binance_rsi_week_data(symbol: str, limit: int = 100):
     except Exception as e:
         print(f"Lỗi lấy RSI tuần của {symbol}: {e}")
         return 0.0, 0.0
+
 
 def check_15m_candles(symbol: str):
     """Lấy dữ liệu nến 15m và tính biến động nến hiện tại (n) và nến trước (n-1)"""
@@ -201,6 +226,7 @@ def check_15m_candles(symbol: str):
     except Exception as e:
         print(f"Lỗi lấy nến 15m của {symbol}: {e}")
         return None
+
 
 def check_4h_candles(symbol: str):
     """Lấy dữ liệu nến 4h và tính biến động cùng 4 mức giá OHLC của nến n và n-1"""
@@ -245,6 +271,7 @@ def check_4h_candles(symbol: str):
         print(f"Lỗi lấy nến 4h của {symbol}: {e}")
         return None
 
+
 def check_1h_candles(symbol: str):
     """Lấy dữ liệu nến 1h và tính biến động nến hiện tại (n) và nến trước (n-1)"""
     url = "https://data-api.binance.vision/api/v3/klines"
@@ -274,6 +301,7 @@ def check_1h_candles(symbol: str):
         print(f"Lỗi lấy nến 1h của {symbol}: {e}")
         return None
 
+
 def fmt_price(p: float) -> str:
     """Định dạng mức giá hiển thị linh hoạt số chữ số thập phân"""
     if p < 0.001:
@@ -282,6 +310,7 @@ def fmt_price(p: float) -> str:
         return f"{p:.5f}"
     else:
         return f"{p:.2f}"
+
 
 def scan_market():
     """Quét toàn bộ thị trường theo các tiêu chí đã định nghĩa"""
@@ -297,6 +326,8 @@ def scan_market():
     if not isinstance(tickers, list):
         print(f"[Cảnh báo API]: Binance phản hồi: {tickers}")
         return
+
+    current_timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # =============================================================
     # NHÓM 1: CÁC COIN TĂNG TRƯỞNG MẠNH 24H >= 20%
@@ -335,6 +366,21 @@ def scan_market():
                 f"• *RSI (24h)*: `{rsi_24h}` | *12h*: `{rsi_12h}` | *4h*: `{rsi_4h}`\n"
             )
             send_telegram_alert_rsi_week(msg_short_week)
+            
+            # Ghi nối tiếp vào Google Sheets
+            append_to_google_sheet({
+                "symbol": symbol,
+                "time": current_timestamp_str,
+                "signal_type": "WEEKLY_RSI_OVERBOUGHT_PEAK",
+                "trigger_price": price,
+                "neckline_price": 0.0,
+                "rsi_weekly": rsi_week_n,
+                "rsi_current": rsi_24h,
+                "macd_hist": 0.0,
+                "is_squeeze": False,
+                "vol_ratio": "1.0x",
+                "notes": f"Bắt đỉnh tuần quá mua: RSI 1W = {rsi_week_n} > {RSI_SHORT_WEEK_THRESHOLD_UP}"
+            })
 
         # --- ĐIỀU KIỆN SHORT CŨ: 24h >= 65%, RSI 4h > 80, 12h > 85, 24h > 85 ---
         if (price_change >= PRICE_CHANGE_THRESHOLD and 
@@ -351,6 +397,20 @@ def scan_market():
                 f"• *RSI (24h)*: `{rsi_24h}` (> {RSI_24H_THRESHOLD})\n"
             )
             send_telegram_alert(msg_short)
+
+            append_to_google_sheet({
+                "symbol": symbol,
+                "time": current_timestamp_str,
+                "signal_type": "SHORT_CLIMAX_4H",
+                "trigger_price": price,
+                "neckline_price": 0.0,
+                "rsi_weekly": rsi_week_n,
+                "rsi_current": rsi_24h,
+                "macd_hist": 0.0,
+                "is_squeeze": False,
+                "vol_ratio": "1.0x",
+                "notes": f"Quá mua cực đại: 24h={price_change:.2f}%, RSI 4h={rsi_4h}, 12h={rsi_12h}, 24h={rsi_24h}"
+            })
 
         # # --- ĐIỀU KIỆN LONG (Nếu kích hoạt lại) ---
         # elif (price_change >= PRICE_CHANGE_THRESHOLD_LONG and 
@@ -402,6 +462,20 @@ def scan_market():
         #         )
         #         send_telegram_alert_long(msg_long)
 
+        #         append_to_google_sheet({
+        #             "symbol": symbol,
+        #             "time": current_timestamp_str,
+        #             "signal_type": "LONG_4H_MOMENTUM",
+        #             "trigger_price": current_price,
+        #             "neckline_price": open_4h_prev,
+        #             "rsi_weekly": rsi_week_n,
+        #             "rsi_current": rsi_4h,
+        #             "macd_hist": 0.0,
+        #             "is_squeeze": False,
+        #             "vol_ratio": f"{ratio_4h}x",
+        #             "notes": f"Long thỏa mãn nến 4h n/abs(n-1)={ratio_4h}x (>=2x), nến 1h={change_n_1h:+.2f}%"
+        #         })
+
         time.sleep(0.3)
 
     # =============================================================
@@ -413,8 +487,7 @@ def scan_market():
         send_telegram_rsi_status(rsi_bot_status_msg)
     else:
         print(f"-> [Bỏ qua báo cáo] Phút hiện tại là :{current_minute:02d} (chỉ gửi vào mốc :00 và :30)")
-
-
+        
     # =============================================================
     # NHÓM 2: CÁC COIN GIẢM GIÁ 24H <= -10% (SHORT ĐẢO CHIỀU TỪ ĐỈNH TUẦN N-1)
     # =============================================================
@@ -448,7 +521,23 @@ def scan_market():
             )
             send_telegram_alert_rsi_week(msg_short_reversal)
 
+            append_to_google_sheet({
+                "symbol": symbol,
+                "time": current_timestamp_str,
+                "signal_type": "WEEKLY_RSI_REVERSAL_BREAKDOWN",
+                "trigger_price": price,
+                "neckline_price": 0.0,
+                "rsi_weekly": rsi_week_prev,
+                "rsi_current": rsi_24h,
+                "macd_hist": 0.0,
+                "is_squeeze": False,
+                "vol_ratio": "1.0x",
+                "notes": f"Xác nhận gãy đỉnh tuần: 24h={price_change:.2f}%, RSI tuần n-1={rsi_week_prev}>{RSI_SHORT_WEEK_THRESHOLD_UP}"
+            })
+
         time.sleep(0.3)
+
+
 
 
 if __name__ == "__main__":

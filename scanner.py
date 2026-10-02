@@ -18,6 +18,10 @@ RSI_24H_THRESHOLD_LONG = 60.0          # RSI 24h > 73
 RSI_12H_THRESHOLD_LONG_UP = 85.0          # RSI 12h < 85
 RSI_24H_THRESHOLD_LONG_UP = 85.0          # RSI 24h < 85
 
+RSI_SHORT_WEEK_THRESHOLD_UP = 93.0          # RSI w < 94
+RSI_SHORT_24H_THRESHOLD_UP = 50.0          # RSI 24h < 50
+PRICE_CHANGE_THRESHOLD_SHORT = -10.0  # Tăng trưởng 24h <- 19%
+
 # Ngưỡng quét 2 nến 15m (Gửi về TELEGRAM_CHAT_ID_LONG)
 PRICE_CHANGE_24H_THRESHOLD = 5.5   # Lọc các coin 24h > 5.5% để quét 15m
 THRESHOLD_15M_PERCENT = 3.0        # Cả 2 nến 15m đều tăng > 3%
@@ -27,6 +31,7 @@ THRESHOLD_4H_RATIO = 2.0
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 TELEGRAM_CHAT_ID_LONG = os.getenv("TELEGRAM_CHAT_ID_LONG")
+TELEGRAM_CHAT_ID_RSI_WEEK = os.getenv("TELEGRAM_CHAT_ID_RSI_WEEK")
 TELEGRAM_CHAT_ID_RSI_BOT_STATUS = os.getenv("TELEGRAM_CHAT_ID_RSI_BOT_STATUS")
 
 def send_telegram_rsi_status(message: str):
@@ -64,6 +69,28 @@ def send_telegram_alert(message: str):
         res = resp.json()
         if res.get("ok"):
             print("-> [Thành công] Đã gửi cảnh báo RSI đến Telegram!")
+        else:
+            print(f"-> [Lỗi Telegram]: {res.get('description')}")
+    except Exception as e:
+        print(f"-> [Lỗi kết nối Telegram]: {e}")
+
+def send_telegram_alert_rsi_week(message: str):
+    """Gửi cảnh báo rsi week qua Telegram Bot"""
+    # Sửa TELEGRAM_CHAT_ID_LONG thành TELEGRAM_CHAT_ID_RSI_WEEK
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID_RSI_WEEK:
+        print("[Lỗi]: Thiếu cấu hình Token hoặc Chat ID RSI WEEK trong Secrets")
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID_RSI_WEEK, 
+        "text": message, 
+        "parse_mode": "Markdown"
+    }
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+        res = resp.json()
+        if res.get("ok"):
+            print("-> [Thành công] Đã gửi cảnh báo Telegram rsi week!")
         else:
             print(f"-> [Lỗi Telegram]: {res.get('description')}")
     except Exception as e:
@@ -250,6 +277,7 @@ def scan_market():
         if isinstance(t, dict) and t.get("symbol", "").endswith("USDT") and float(t.get("priceChangePercent", 0)) >= PRICE_CHANGE_THRESHOLD_LONG #PRICE_CHANGE_THRESHOLD
     ]
 
+
     rsi_bot_status_msg = ""
     step_msg = f"\n--- [Nhiệm vụ] Tìm thấy {len(matched_candidates)} coin có biến động >= {PRICE_CHANGE_THRESHOLD_LONG}% ---"
     print(step_msg)
@@ -347,6 +375,39 @@ def scan_market():
         # Nghỉ giữa các coin ở cuối vòng lặp
         time.sleep(0.3)
     # Chỉ gửi báo cáo trạng thái vào các mốc 30 phút (ví dụ: 1:00, 1:30, 2:00, 2:30, ...)
+    matched_short_week_candidates = [
+        t for t in tickers
+        if isinstance(t, dict) and t.get("symbol", "").endswith("USDT") and float(t.get("priceChangePercent", 0)) <= PRICE_CHANGE_THRESHOLD_SHORT
+    ]
+    print(f"\n--- [Nhiệm vụ Short Week] Tìm thấy {len(matched_short_week_candidates)} coin có biến động 24h <= {PRICE_CHANGE_THRESHOLD_SHORT}% ---")
+
+    for coin in matched_short_week_candidates:
+        symbol = coin["symbol"]
+        price = float(coin["lastPrice"])
+        price_change = float(coin["priceChangePercent"])
+
+        # Lấy RSI khung tuần (1w), ngày (1d) và 4h
+        rsi_week = get_binance_rsi(symbol, "1w")
+        rsi_24h = get_binance_rsi(symbol, "1d")
+        rsi_4h = get_binance_rsi(symbol, "4h")
+
+        print(f"-> [Check Week] {symbol}: 24h = {price_change:.2f}%, RSI 1W = {rsi_week}, 24h = {rsi_24h}, 4h = {rsi_4h}")
+
+        # Điều kiện: 24h <= -10% và RSI Tuần > 94 (kèm điều kiện RSI 24h < 50 nếu cần)
+        if rsi_week > RSI_SHORT_WEEK_THRESHOLD_UP :
+            msg = (
+                f"📉 *CẢNH BÁO SHORT / RSI TUẦN QUÁ MUA & ĐẢO CHIỀU!*\n"
+                f"• *Symbol*: `{symbol}`\n"
+                f"• *Giá hiện tại*: `{price}`\n"
+                f"• *Price Change (24h)*: `{price_change:.2f}%` (<= {PRICE_CHANGE_THRESHOLD_SHORT}%)\n"
+                f"• *RSI (Tuần - 1W)*: `{rsi_week}` (> {RSI_SHORT_WEEK_THRESHOLD_UP})\n"
+                f"• *RSI (24h)*: `{rsi_24h}`\n"
+                f"• *RSI (4h)*: `{rsi_4h}`\n"
+            )
+            send_telegram_alert_rsi_week(msg)
+
+        time.sleep(0.3)
+
     current_minute = datetime.now().minute
 
     # Trừ hao máy chủ trễ 1-2 phút: chấp nhận các phút 00, 01, 02 và 30, 31, 32

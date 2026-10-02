@@ -21,7 +21,7 @@ RSI_24H_THRESHOLD_LONG_UP = 85.0    # RSI 24h < 85
 THRESHOLD_4H_RATIO = 2.0
 
 # Ngưỡng quét SHORT WEEK (Gửi về TELEGRAM_CHAT_ID_RSI_WEEK)
-RSI_SHORT_WEEK_THRESHOLD_UP = 90.0  # RSI Tuần > 90
+RSI_SHORT_WEEK_THRESHOLD_UP = 93.0  # RSI Tuần > 93
 RSI_SHORT_24H_THRESHOLD_UP = 50.0   # RSI 24h < 50
 PRICE_CHANGE_THRESHOLD_SHORT = -10.0 # Giảm giá 24h <= -10%
 
@@ -405,6 +405,17 @@ def scan_market():
         time.sleep(0.3)
 
     # =============================================================
+    # GỬI BÁO CÁO TRẠNG THÁI MỖI 30 PHÚT (:00 và :30)
+    # =============================================================
+    current_minute = datetime.now().minute
+    if (current_minute % 30) < 3:
+        print(f"-> [Gửi báo cáo] Đúng mốc 30 phút (phút hiện tại là :{current_minute:02d})")
+        send_telegram_rsi_status(rsi_bot_status_msg)
+    else:
+        print(f"-> [Bỏ qua báo cáo] Phút hiện tại là :{current_minute:02d} (chỉ gửi vào mốc :00 và :30)")
+
+
+    # =============================================================
     # NHÓM 2: CÁC COIN GIẢM GIÁ 24H <= -10% (SHORT ĐẢO CHIỀU TỪ ĐỈNH TUẦN N-1)
     # =============================================================
     matched_short_week_candidates = [
@@ -439,15 +450,6 @@ def scan_market():
 
         time.sleep(0.3)
 
-    # =============================================================
-    # GỬI BÁO CÁO TRẠNG THÁI MỖI 30 PHÚT (:00 và :30)
-    # =============================================================
-    current_minute = datetime.now().minute
-    if (current_minute % 30) < 3:
-        print(f"-> [Gửi báo cáo] Đúng mốc 30 phút (phút hiện tại là :{current_minute:02d})")
-        send_telegram_rsi_status(rsi_bot_status_msg)
-    else:
-        print(f"-> [Bỏ qua báo cáo] Phút hiện tại là :{current_minute:02d} (chỉ gửi vào mốc :00 và :30)")
 
 if __name__ == "__main__":
     scan_market()

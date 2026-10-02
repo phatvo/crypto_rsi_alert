@@ -309,52 +309,52 @@ def scan_market():
             send_telegram_alert(msg)
 
         # Trường hợp 2: Cảnh báo LONG (24h >= 33%, RSI 4h > 50, 73 < RSI 12h, 24h < 85)
-        elif (price_change >= PRICE_CHANGE_THRESHOLD_LONG and 
-              rsi_4h > RSI_4H_THRESHOLD_LONG and 
-              rsi_12h > RSI_12H_THRESHOLD_LONG and rsi_24h > RSI_24H_THRESHOLD_LONG):
+        # elif (price_change >= PRICE_CHANGE_THRESHOLD_LONG and 
+        #       rsi_4h > RSI_4H_THRESHOLD_LONG and 
+        #       rsi_12h > RSI_12H_THRESHOLD_LONG and rsi_24h > RSI_24H_THRESHOLD_LONG):
             
-            candle_info = check_4h_candles(symbol)
-            if not candle_info:
-                continue
+        #     candle_info = check_4h_candles(symbol)
+        #     if not candle_info:
+        #         continue
 
-            change_n = candle_info["change_n"]
-            change_prev = candle_info["change_prev"]
-            current_price = candle_info["current_price"]
+        #     change_n = candle_info["change_n"]
+        #     change_prev = candle_info["change_prev"]
+        #     current_price = candle_info["current_price"]
 
-            # Lấy thông số OHLC của nến 4h (n-1)
-            open_4h_prev = candle_info["open_4h_prev"]
-            high_4h_prev = candle_info["high_4h_prev"]
-            low_4h_prev = candle_info["low_4h_prev"]
-            close_4h_prev = candle_info["close_4h_prev"]
-            tp_cur = low_4h_prev * 1.1
-            sl_cur = current_price - low_4h_prev * 0.05
+        #     # Lấy thông số OHLC của nến 4h (n-1)
+        #     open_4h_prev = candle_info["open_4h_prev"]
+        #     high_4h_prev = candle_info["high_4h_prev"]
+        #     low_4h_prev = candle_info["low_4h_prev"]
+        #     close_4h_prev = candle_info["close_4h_prev"]
+        #     tp_cur = low_4h_prev * 1.1
+        #     sl_cur = current_price - low_4h_prev * 0.05
 
-            # Điều kiện: 2 nến 4h đều là nến xanh (tăng) và nến n tăng gấp >= 2 lần nến n-1
-            if change_n > 0 and (change_n / abs(change_prev)) >= THRESHOLD_4H_RATIO:
-                total_4h = round(change_n + change_prev, 2)
-                ratio_4h = round(change_n / change_prev, 2)
+        #     # Điều kiện: 2 nến 4h đều là nến xanh (tăng) và nến n tăng gấp >= 2 lần nến n-1
+        #     if change_n > 0 and (change_n / abs(change_prev)) >= THRESHOLD_4H_RATIO:
+        #         total_4h = round(change_n + change_prev, 2)
+        #         ratio_4h = round(change_n / change_prev, 2)
 
-                # Lấy nến 1h hiện tại
-                candle_1h_info = check_1h_candles(symbol)
-                change_n_1h = candle_1h_info["change_n"] if candle_1h_info else 0.0
+        #         # Lấy nến 1h hiện tại
+        #         candle_1h_info = check_1h_candles(symbol)
+        #         change_n_1h = candle_1h_info["change_n"] if candle_1h_info else 0.0
 
-                msg = (
-                    f"⚡ *COIN ALERT THỎA ĐIỀU KIỆN LONG!*\n"
-                    f"• *Symbol*: `{symbol}`\n"
-                    f"• *Giá hiện tại*: `{current_price}`\n"
-                    f"• *Price Change (24h)*: `+{price_change:.2f}%` (>= {PRICE_CHANGE_THRESHOLD_LONG}%)\n"
-                    f"• *RSI (4h)*: `{rsi_4h}` (> {RSI_4H_THRESHOLD_LONG})\n"
-                    f"• *RSI (12h)*: `{rsi_12h}` (> {RSI_12H_THRESHOLD_LONG})\n"
-                    f"• *RSI (24h)*: `{rsi_24h}` (> {RSI_24H_THRESHOLD_LONG})\n"
-                    f"• *Nến 4h hiện tại (n)*: `+{change_n:.2f}%`\n"
-                    f"• *Nến 4h trước đó (n-1)*: `{change_prev:.2f}%`\n"
-                    f"• *Tỷ lệ nến 4h n/abs((n-1))*: `{ratio_4h}x` (>= {THRESHOLD_4H_RATIO}x)\n"
-                    f"• *Tổng tăng 2 nến 4h*: `+{total_4h:.2f}%`\n"
-                    f"• *Nến 1h hiện tại (n)*: `{change_n_1h:.2f}%`\n"
-                    f"• *Take Profit (TP)*: `{tp_cur:.5f}`\n"
-                    f"• *Stop Loss (SL)*: `{sl_cur:.5f}`\n"
-                )
-                send_telegram_alert_long(msg)
+        #         msg = (
+        #             f"⚡ *COIN ALERT THỎA ĐIỀU KIỆN LONG!*\n"
+        #             f"• *Symbol*: `{symbol}`\n"
+        #             f"• *Giá hiện tại*: `{current_price}`\n"
+        #             f"• *Price Change (24h)*: `+{price_change:.2f}%` (>= {PRICE_CHANGE_THRESHOLD_LONG}%)\n"
+        #             f"• *RSI (4h)*: `{rsi_4h}` (> {RSI_4H_THRESHOLD_LONG})\n"
+        #             f"• *RSI (12h)*: `{rsi_12h}` (> {RSI_12H_THRESHOLD_LONG})\n"
+        #             f"• *RSI (24h)*: `{rsi_24h}` (> {RSI_24H_THRESHOLD_LONG})\n"
+        #             f"• *Nến 4h hiện tại (n)*: `+{change_n:.2f}%`\n"
+        #             f"• *Nến 4h trước đó (n-1)*: `{change_prev:.2f}%`\n"
+        #             f"• *Tỷ lệ nến 4h n/abs((n-1))*: `{ratio_4h}x` (>= {THRESHOLD_4H_RATIO}x)\n"
+        #             f"• *Tổng tăng 2 nến 4h*: `+{total_4h:.2f}%`\n"
+        #             f"• *Nến 1h hiện tại (n)*: `{change_n_1h:.2f}%`\n"
+        #             f"• *Take Profit (TP)*: `{tp_cur:.5f}`\n"
+        #             f"• *Stop Loss (SL)*: `{sl_cur:.5f}`\n"
+        #         )
+        #         send_telegram_alert_long(msg)
 
             # if change_n > THRESHOLD_15M_PERCENT and change_prev > THRESHOLD_15M_PERCENT:
             #     total_15m = round(change_n + change_prev, 2)

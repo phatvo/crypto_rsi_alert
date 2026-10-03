@@ -36,11 +36,11 @@ jobs:
           python scanner.py
 
           # 2. Lấy số phút hiện tại theo giờ UTC (từ 0 đến 59)
-          MINUTE=$(date -u +%-M)
+          # MINUTE=$(date -u +%-M)
 
           # Điều kiện: Chạy vào mốc đầu giờ (:00 - :04)
           HOUR=$(date -u +%-H)
           MINUTE=$(date -u +%-M)
-          if [ "$MINUTE" -lt 5 ] && [ $((HOUR % 1)) -eq 0 ]; then
+          #if [ "$MINUTE" -lt 5 ] && [ $((HOUR % 1)) -eq 0 ]; then
             python scan_patterns_hourly.py
-          fi
+          #fi

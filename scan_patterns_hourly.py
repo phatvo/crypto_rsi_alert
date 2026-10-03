@@ -5,9 +5,10 @@ SCAN_PATTERNS_HOURLY.PY (HỖ TRỢ ĐA KHUNG THỜI GIAN: 12H VÀ 1D + TÍCH H�
 Tối ưu hóa:
 - Toàn bộ thời gian (tiêu đề báo cáo và timestamp nến tín hiệu) chuẩn hóa theo Giờ Việt Nam (UTC+7).
 - Bổ sung thông tin đầy đủ cả RSI 1W hiện tại (n) và RSI 1W trước đó (n-1).
-- Cơ chế Retry 3 lần + Delay 0.5s cho Google Sheet Webhook tránh Read Timeout & LockService congestion.
-- Xử lý chuẩn xác coin mới niêm yết chưa đủ 16 nến tuần (RSI 1W = None/NA).
-- Hỗ trợ tham số --exclude-stocks lọc bỏ mã chứng khoán/token phái sinh phái sinh (*BUSDT).
+- Khắc phục triệt để lỗi Google Sheet phản hồi trang HTML "Page Not Found" bằng cơ chế nhận diện lỗi HTML và Retry tự động.
+- Nâng thời gian giãn cách ghi Sheet lên 1.0s để tránh nghẽn LockService khi có nhiều tín hiệu liên tiếp.
+- Xử lý chuẩn xác coin mới niêm yết chưa đủ 16 nến tuần (RSI 1W = N/A).
+- Hỗ trợ tham số --exclude-stocks lọc bỏ mã token cổ phiếu/phái sinh (*BUSDT).
 """
 
 import os
@@ -94,23 +95,37 @@ def sanitize_payload(obj):
         return float(obj)
     return obj
 
-def append_to_sheet(payload: dict, retries: int = 3, timeout: int = 25) -> str:
-    """Gửi dữ liệu tín hiệu mới về Google Sheet Webhook có cơ chế retry và delay phòng ngừa nghẽn"""
+def append_to_sheet(payload: dict, max_retries: int = 3) -> str:
+    """Gửi dữ liệu tín hiệu mới về Google Sheet Webhook có cơ chế retry tự động và phát hiện lỗi HTML"""
     if not GOOGLE_SHEET_WEBHOOK_URL:
         return "Thiếu WEBHOOK_URL"
     clean_payload = sanitize_payload(payload)
-    last_error = ""
-    for attempt in range(1, retries + 1):
+    for attempt in range(1, max_retries + 1):
         try:
-            resp = requests.post(GOOGLE_SHEET_WEBHOOK_URL, json=clean_payload, timeout=timeout)
+            resp = requests.post(GOOGLE_SHEET_WEBHOOK_URL, json=clean_payload, timeout=25)
             status = resp.text.strip()
-            time.sleep(0.5)  # Nghỉ nhẹ tránh nghẽn LockService khi ghi liên tục
+            
+            # Phát hiện nếu Google phản hồi trang HTML (như lỗi 'Page Not Found', 404, 503)
+            if resp.status_code != 200 or status.startswith("<") or "Page Not Found" in status:
+                if attempt < max_retries:
+                    time.sleep(2 * attempt)
+                    continue
+                return f"Lỗi Google Sheet (HTTP {resp.status_code} - Quá tải tạm thời)"
+            
+            # Gửi thành công ('OK' hoặc 'SKIPPED')
+            time.sleep(1.0)  # Nghỉ 1 giây để Google Apps Script giải phóng LockService
             return status
+        except requests.exceptions.Timeout:
+            if attempt < max_retries:
+                time.sleep(2 * attempt)
+            else:
+                return "Lỗi: Timeout (Google Sheet phản hồi quá 25s)"
         except Exception as e:
-            last_error = str(e)
-            if attempt < retries:
-                time.sleep(1.5)  # Chờ trước khi thử lại
-    return f"Lỗi (sau {retries} lần thử): {last_error}"
+            if attempt < max_retries:
+                time.sleep(2 * attempt)
+            else:
+                return f"Lỗi: {e}"
+    return "Lỗi: Không thể gửi dữ liệu"
 
 def calculate_indicators(df: pd.DataFrame, kc_multiplier: float = 1.0) -> pd.DataFrame:
     """Tính các chỉ báo kỹ thuật: RSI, Bollinger Bands, Keltner Channels, Squeeze, MACD, Volume MA"""
@@ -180,7 +195,13 @@ def get_weekly_rsi_data(symbol: str) -> tuple:
         avg_loss = loss.ewm(alpha=1/14, min_periods=14, adjust=False).mean()
         rs = avg_gain / avg_loss
         rsi = 100 - (100 / (1 + rs))
-        return round(float(rsi.iloc[-1]), 2), round(float(rsi.iloc[-2]), 2)
+        r_n = round(float(rsi.iloc[-1]), 2)
+        r_prev = round(float(rsi.iloc[-2]), 2)
+        if np.isnan(r_n):
+            r_n = None
+        if np.isnan(r_prev):
+            r_prev = None
+        return r_n, r_prev
     except Exception:
         return None, None
 
@@ -237,7 +258,7 @@ def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: 
         # Lấy RSI Tuần: nến hiện tại (n) và nến trước đó (n-1)
         rsi_week_n, rsi_week_prev = get_weekly_rsi_data(symbol)
 
-        # Format văn bản hiển thị cho RSI Tuần
+        # Định dạng chuỗi hiển thị RSI Tuần trên log
         rsi_week_str = f"RSI 1W (n): {rsi_week_n} | (n-1): {rsi_week_prev}" if rsi_week_n is not None else "RSI 1W: N/A (<16 tuần)"
 
         # 1. KIỂM TRA BUNG NÉN TTM SQUEEZE
@@ -399,11 +420,9 @@ def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: 
         print(f"Lỗi quét {symbol} [{timeframe}]: {e}")
         return detected
 
-
 def main():
     parser = argparse.ArgumentParser(description="Bot quét mô hình giá Binance đa khung thời gian (12h, 1D) kết hợp RSI Tuần")
     parser.add_argument("--tf", "--timeframe", dest="timeframe", default=os.getenv("TIMEFRAME", "auto"),
-
                         help="Khung thời gian quét: '12h', '1d', 'both' (cả 12h và 1d), '4h', hoặc 'auto' (tự động theo giờ VN)")
     parser.add_argument("--live", action="store_true", default=False,
                         help="Nếu bật --live: Quét nến đang chạy dở (iloc[-1]). Mặc định: Quét nến vừa đóng hoàn tất (iloc[-2]).")
@@ -421,7 +440,6 @@ def main():
     print(f"🎯 Khung thời gian quét: {', '.join([tf.upper() for tf in target_timeframes])}")
     print(f"📌 Chế độ nến: {'NẾN VỪA ĐÓNG HOÀN TẤT (iloc[-2], chuẩn xác không repaint)' if check_closed else 'NẾN ĐANG CHẠY (iloc[-1])'}")
     print(f"📊 Bộ lọc RSI Tuần: Bắt đỉnh quá mua >= {RSI_WEEK_OVERBOUGHT} & Xác nhận gãy nến <= {RSI_WEEK_BREAKDOWN_DROP}%")
-
     if args.exclude_stocks:
         print("🚫 Lọc bỏ: Mã chứng khoán/token phái sinh (*BUSDT)")
     print("=" * 75)
@@ -429,7 +447,6 @@ def main():
     try:
         tickers = requests.get("https://data-api.binance.vision/api/v3/ticker/24hr", timeout=15).json()
         symbols = [t['symbol'] for t in tickers if isinstance(t, dict) and t.get('symbol', '').endswith('USDT')]
-
         if args.exclude_stocks:
             symbols = [s for s in symbols if not s.endswith('BUSDT')]
     except Exception as e:
@@ -475,6 +492,6 @@ def main():
         print("ℹ️ Kết quả: Không có cặp coin nào xuất hiện điểm breakout mô hình ở các khung quét.")
     print("=" * 75)
 
-
 if __name__ == "__main__":
     main()
+

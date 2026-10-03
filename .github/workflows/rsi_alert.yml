@@ -41,6 +41,6 @@ jobs:
           # Điều kiện: Chạy vào mốc đầu giờ (:00 - :04)
           HOUR=$(date -u +%-H)
           MINUTE=$(date -u +%-M)
-          if [ "$MINUTE" -lt 5 ] && [ $((HOUR % 1)) -eq 0 ]; then
+          #if [ "$MINUTE" -lt 5 ] && [ $((HOUR % 1)) -eq 0 ]; then
             python scan_patterns_hourly.py
-          fi
+          #fi

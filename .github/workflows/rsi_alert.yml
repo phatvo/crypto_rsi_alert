@@ -29,7 +29,8 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TELEGRAM_CHAT_ID_LONG: ${{ secrets.TELEGRAM_CHAT_ID_LONG }}
           TELEGRAM_CHAT_ID_RSI_BOT_STATUS: ${{ secrets.TELEGRAM_CHAT_ID_RSI_BOT_STATUS }}
-          TELEGRAM_CHAT_ID_RSI_WEEK: ${{ secrets.TELEGRAM_CHAT_ID_RSI_WEEK }}          
+          TELEGRAM_CHAT_ID_RSI_WEEK: ${{ secrets.TELEGRAM_CHAT_ID_RSI_WEEK }} 
+          GOOGLE_SHEET_WEBHOOK_URL: ${{ secrets.GOOGLE_SHEET_WEBHOOK_URL }} 
         run: |
           # 1. Luôn chạy bộ quét nhanh 5 phút
           python scanner.py

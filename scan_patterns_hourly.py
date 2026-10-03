@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 SCAN_PATTERNS_HOURLY.PY (HỖ TRỢ ĐA KHUNG THỜI GIAN: 12H VÀ 1D + TÍCH HỢP TOÀN DIỆN RSI TUẦN)
-Tối ưu cho lịch quét:
-- Ca sáng (07:10 - 08:00 VN): Tự động quét cả khung 1 Ngày (1D) và 12 Giờ (12h ca đêm vừa đóng).
-- Ca tối (19:10 - 20:00 VN): Tự động quét khung 12 Giờ (12h ca ngày vừa đóng).
-- Đã khắc phục lỗi: Tự động ép kiểu NumPy (np.bool_, np.floating, np.integer) sang kiểu Python chuẩn để tránh lỗi JSON serializable.
+Tối ưu hóa:
+- Toàn bộ thời gian (tiêu đề báo cáo và timestamp nến tín hiệu) chuẩn hóa theo Giờ Việt Nam (UTC+7).
+- Bổ sung thông tin đầy đủ cả RSI 1W hiện tại (n) và RSI 1W trước đó (n-1).
 """
 
 import os
@@ -56,12 +55,10 @@ RSI_WEEK_OVERBOUGHT = 80.0       # Ngưỡng cảnh báo đỉnh tuần quá mua
 RSI_WEEK_CLIMAX = 90.0           # Ngưỡng đỉnh tuần cực đại (>= 90.0)
 RSI_WEEK_BREAKDOWN_DROP = -7.0   # Mức giảm nến xác nhận gãy đỉnh tuần (<= -7.0%)
 
-
 def get_current_vn_time() -> datetime:
     """Lấy thời gian hiện tại theo múi giờ Việt Nam (UTC+7)"""
     utc_now = datetime.now(timezone.utc)
     return utc_now + timedelta(hours=7)
-
 
 def determine_timeframes(tf_arg: str) -> list:
     """Xác định danh sách khung thời gian cần quét"""
@@ -80,9 +77,8 @@ def determine_timeframes(tf_arg: str) -> list:
     else:
         return ["12h", "1d"]
 
-
 def sanitize_payload(obj):
-    """Chuyển đổi triệt để các kiểu dữ liệu NumPy sang kiểu chuẩn của Python để tránh lỗi JSON serializable"""
+    """Chuyển đổi các kiểu dữ liệu NumPy sang kiểu chuẩn Python tránh lỗi JSON"""
     if isinstance(obj, dict):
         return {k: sanitize_payload(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -95,7 +91,6 @@ def sanitize_payload(obj):
         return float(obj)
     return obj
 
-
 def append_to_sheet(payload: dict) -> str:
     """Gửi dữ liệu tín hiệu mới về Google Sheet Webhook"""
     if not GOOGLE_SHEET_WEBHOOK_URL:
@@ -107,7 +102,6 @@ def append_to_sheet(payload: dict) -> str:
         return status
     except Exception as e:
         return f"Lỗi: {e}"
-
 
 def calculate_indicators(df: pd.DataFrame, kc_multiplier: float = 1.0) -> pd.DataFrame:
     """Tính các chỉ báo kỹ thuật: RSI, Bollinger Bands, Keltner Channels, Squeeze, MACD, Volume MA"""
@@ -159,7 +153,6 @@ def calculate_indicators(df: pd.DataFrame, kc_multiplier: float = 1.0) -> pd.Dat
 
     return df
 
-
 def get_weekly_rsi_data(symbol: str) -> tuple:
     """Lấy RSI khung tuần (1W) của nến hiện tại (n) và nến trước đó (n-1)"""
     url = "https://data-api.binance.vision/api/v3/klines"
@@ -182,11 +175,8 @@ def get_weekly_rsi_data(symbol: str) -> tuple:
     except Exception:
         return 0.0, 0.0
 
-
 def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: bool = True) -> list:
-    """
-    Quét mô hình và kiểm tra toàn diện điều kiện RSI Tuần cho từng cặp coin.
-    """
+    """Quét mô hình và kiểm tra toàn diện điều kiện RSI Tuần cho từng cặp coin."""
     detected = []
     cfg = TIMEFRAME_CONFIGS.get(timeframe.lower(), TIMEFRAME_CONFIGS["12h"])
     candle_limit = cfg["candle_limit"]
@@ -209,7 +199,8 @@ def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: 
             "open_time", "open", "high", "low", "close", "volume",
             "close_time", "q_vol", "trades", "tb_base", "tb_quote", "ignore"
         ])
-
+        
+        # Chuyển đổi timestamp mở nến sang Giờ Việt Nam (UTC+7)
         df['datetime'] = pd.to_datetime(df['open_time'], unit='ms') + pd.Timedelta(hours=7)
         for col in ['open', 'high', 'low', 'close', 'volume']:
             df[col] = df[col].astype(float)
@@ -234,15 +225,12 @@ def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: 
         highs = df['high'].values
         lows = df['low'].values
 
-        # Lấy RSI Tuần để kết hợp vào mọi tín hiệu
+        # Lấy RSI Tuần: nến hiện tại (n) và nến trước đó (n-1)
         rsi_week_n, rsi_week_prev = get_weekly_rsi_data(symbol)
 
         # 1. KIỂM TRA BUNG NÉN TTM SQUEEZE
         if curr['Squeeze_Fired'] and curr['Vol_Breakout']:
             direction = "TĂNG" if curr['MACD_Hist'] > 0 else "GIẢM"
-            note_week = f" [RSI 1W: {rsi_week_n}]"
-
-            note_week = f" [RSI 1W (n): {rsi_week_n}, RSI 1W (n-1): {rsi_week_prev}]"
             payload = {
                 "symbol": symbol,
                 "time": time_str,
@@ -252,20 +240,13 @@ def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: 
                 "rsi_weekly": float(rsi_week_n),
                 "rsi_weekly_prev": float(rsi_week_prev),
                 "rsi_current": float(curr['RSI']),
-                "symbol": symbol,
-                "time": time_str,
-                "signal_type": f"SQUEEZE_FIRED_{direction}_{tf_tag}",
-                "trigger_price": curr_close,
-                "neckline_price": float(round(curr['BB_Mid'], 4)),
-                "rsi_weekly": float(rsi_week_n),
-                "rsi_current": float(curr['RSI']),
                 "macd_hist": float(round(curr['MACD_Hist'], 4)),
                 "is_squeeze": False,
                 "vol_ratio": f"{curr['Vol_Ratio']}x",
-                "notes": f"[{tf_tag}] Bung nén Bollinger trong Keltner (KC 20 1) hướng {direction}. Vol: {curr['Vol_Ratio']}x.{note_week}"
+                "notes": f"[{tf_tag}] Bung nén Bollinger trong Keltner (KC 20 1) hướng {direction}. Vol: {curr['Vol_Ratio']}x. [RSI 1W (n): {rsi_week_n} | (n-1): {rsi_week_prev}]"
             }
             sheet_res = append_to_sheet(payload)
-            print(f"\n🎯 [SQUEEZE {tf_tag}] {symbol} -> Hướng {direction} | Giá: {curr_close} | Vol: {curr['Vol_Ratio']}x | RSI 1W: {rsi_week_n} | Sheet: {sheet_res}")
+            print(f"\n🎯 [SQUEEZE {tf_tag}] {symbol} -> Hướng {direction} | Giá: {curr_close} | Vol: {curr['Vol_Ratio']}x | RSI 1W (n): {rsi_week_n} | (n-1): {rsi_week_prev} | Sheet: {sheet_res}")
             detected.append(payload)
 
         # XÁC ĐỊNH ĐỈNH/ĐÁY SWING CHO MÔ HÌNH W & M
@@ -296,19 +277,11 @@ def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: 
                             if prev_close <= neck_price and curr_close > neck_price:
                                 rsi_div = "Phân kỳ RSI (+)" if df['RSI'].iloc[t2] > df['RSI'].iloc[t1] else "Không phân kỳ"
                                 
-
-                                week_comment = f" (RSI 1W n: {rsi_week_n}, n-1: {rsi_week_prev})"
+                                week_comment = f" [RSI 1W (n): {rsi_week_n} | (n-1): {rsi_week_prev}]"
                                 if rsi_week_n >= RSI_WEEK_OVERBOUGHT:
-                                    week_comment += f" ⚠️ Cảnh báo: RSI tuần={rsi_week_n}>=80 (vùng đỉnh, đề phòng bull trap)"
+                                    week_comment += f" ⚠️ Cảnh báo: RSI tuần n={rsi_week_n}>=80 (vùng đỉnh)"
                                 elif rsi_week_n <= 35.0:
-                                    week_comment += f" ⭐ RSI tuần={rsi_week_n}<=35 (vùng đáy hỗ trợ cực mạnh)"
-                                if rsi_week_n >= RSI_WEEK_OVERBOUGHT:
-                                    week_comment = f" ⚠️ Cảnh báo: RSI tuần={rsi_week_n}>=80 (vùng đỉnh, đề phòng bull trap)"
-                                elif rsi_week_n <= 35.0:
-                                    week_comment = f" ⭐ RSI tuần={rsi_week_n}<=35 (vùng đáy hỗ trợ cực mạnh)"
-                                else:
-                                    week_comment = f" (RSI 1W: {rsi_week_n})"
-
+                                    week_comment += f" ⭐ RSI tuần n={rsi_week_n}<=35 (vùng đáy hỗ trợ mạnh)"
 
                                 payload = {
                                     "symbol": symbol,
@@ -319,20 +292,13 @@ def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: 
                                     "rsi_weekly": float(rsi_week_n),
                                     "rsi_weekly_prev": float(rsi_week_prev),
                                     "rsi_current": float(curr['RSI']),
-                                    "symbol": symbol,
-                                    "time": time_str,
-                                    "signal_type": f"W_DOUBLE_BOTTOM_{tf_tag}",
-                                    "trigger_price": curr_close,
-                                    "neckline_price": neck_price,
-                                    "rsi_weekly": float(rsi_week_n),
-                                    "rsi_current": float(curr['RSI']),
                                     "macd_hist": float(round(curr['MACD_Hist'], 4)),
                                     "is_squeeze": bool(curr['Is_Squeeze']),
                                     "vol_ratio": f"{curr['Vol_Ratio']}x",
                                     "notes": f"[{tf_tag}] Breakout viền cổ W. {rsi_div}. Vol: {curr['Vol_Ratio']}x.{week_comment}"
                                 }
                                 sheet_res = append_to_sheet(payload)
-                                print(f"\n🚀 [MÔ HÌNH W {tf_tag}] {symbol} -> Breakout: {neck_price} | Giá: {curr_close} | {rsi_div} | RSI 1W: {rsi_week_n} | Sheet: {sheet_res}")
+                                print(f"\n🚀 [MÔ HÌNH W {tf_tag}] {symbol} -> Breakout: {neck_price} | Giá: {curr_close} | {rsi_div} | RSI 1W (n): {rsi_week_n} | (n-1): {rsi_week_prev} | Sheet: {sheet_res}")
                                 detected.append(payload)
 
         # 3. KIỂM TRA MÔ HÌNH M (DOUBLE TOP) + LỌC RSI TUẦN
@@ -351,15 +317,9 @@ def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: 
                             if prev_close >= neck_price and curr_close < neck_price:
                                 rsi_div = "Phân kỳ RSI (-)" if df['RSI'].iloc[p2] < df['RSI'].iloc[p1] else "Không phân kỳ"
                                 
-
-                                week_comment = f" (RSI 1W n: {rsi_week_n}, n-1: {rsi_week_prev})"
+                                week_comment = f" [RSI 1W (n): {rsi_week_n} | (n-1): {rsi_week_prev}]"
                                 if rsi_week_n >= RSI_WEEK_OVERBOUGHT:
-                                    week_comment += f" ⭐ Thuận xu hướng lớn: RSI tuần={rsi_week_n}>=80 (vùng đỉnh xả mạnh)"
-                                if rsi_week_n >= RSI_WEEK_OVERBOUGHT:
-                                    week_comment = f" ⭐ Thuận xu hướng lớn: RSI tuần={rsi_week_n}>=80 (vùng đỉnh xả mạnh)"
-                                else:
-                                    week_comment = f" (RSI 1W: {rsi_week_n})"
-
+                                    week_comment += f" ⭐ Thuận xu hướng lớn: RSI tuần={rsi_week_n}>=80"
 
                                 payload = {
                                     "symbol": symbol,
@@ -370,26 +330,18 @@ def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: 
                                     "rsi_weekly": float(rsi_week_n),
                                     "rsi_weekly_prev": float(rsi_week_prev),
                                     "rsi_current": float(curr['RSI']),
-                                    "symbol": symbol,
-                                    "time": time_str,
-                                    "signal_type": f"M_DOUBLE_TOP_{tf_tag}",
-                                    "trigger_price": curr_close,
-                                    "neckline_price": neck_price,
-                                    "rsi_weekly": float(rsi_week_n),
-                                    "rsi_current": float(curr['RSI']),
                                     "macd_hist": float(round(curr['MACD_Hist'], 4)),
                                     "is_squeeze": bool(curr['Is_Squeeze']),
                                     "vol_ratio": f"{curr['Vol_Ratio']}x",
                                     "notes": f"[{tf_tag}] Breakdown viền cổ M. {rsi_div}. Vol: {curr['Vol_Ratio']}x.{week_comment}"
                                 }
                                 sheet_res = append_to_sheet(payload)
-                                print(f"\n⚠️ [MÔ HÌNH M {tf_tag}] {symbol} -> Thủng viền cổ: {neck_price} | Giá: {curr_close} | {rsi_div} | RSI 1W: {rsi_week_n} | Sheet: {sheet_res}")
+                                print(f"\n⚠️ [MÔ HÌNH M {tf_tag}] {symbol} -> Thủng viền cổ: {neck_price} | Giá: {curr_close} | {rsi_div} | RSI 1W (n): {rsi_week_n} | (n-1): {rsi_week_prev} | Sheet: {sheet_res}")
                                 detected.append(payload)
 
         # 4. ĐIỀU KIỆN RSI TUẦN: BẮT ĐỈNH QUÁ MUA (WEEKLY_RSI_OVERBOUGHT_PEAK)
         if rsi_week_n >= RSI_WEEK_OVERBOUGHT:
             climax_tag = " [CỰC ĐẠI >= 90]" if rsi_week_n >= RSI_WEEK_CLIMAX else ""
-
             payload_peak = {
                 "symbol": symbol,
                 "time": time_str,
@@ -403,26 +355,14 @@ def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: 
                 "is_squeeze": bool(curr['Is_Squeeze']),
                 "vol_ratio": f"{curr['Vol_Ratio']}x",
                 "notes": f"[{tf_tag}] Bắt đỉnh tuần quá mua{climax_tag}: RSI 1W (n) = {rsi_week_n} >= {RSI_WEEK_OVERBOUGHT}, RSI 1W (n-1) = {rsi_week_prev}. Vùng Short tiềm năng."
-                "symbol": symbol,
-                "time": time_str,
-                "signal_type": f"WEEKLY_RSI_OVERBOUGHT_PEAK_{tf_tag}",
-                "trigger_price": curr_close,
-                "neckline_price": float(round(curr['BB_Mid'], 4)),
-                "rsi_weekly": float(rsi_week_n),
-                "rsi_current": float(curr['RSI']),
-                "macd_hist": float(round(curr['MACD_Hist'], 4)),
-                "is_squeeze": bool(curr['Is_Squeeze']),
-                "vol_ratio": f"{curr['Vol_Ratio']}x",
-                "notes": f"[{tf_tag}] Bắt đỉnh tuần quá mua{climax_tag}: RSI 1W = {rsi_week_n} >= {RSI_WEEK_OVERBOUGHT}. Vùng Short tiềm năng."
             }
             sheet_res = append_to_sheet(payload_peak)
-            print(f"\n🚨 [ĐỈNH TUẦN QUÁ MUA {tf_tag}] {symbol} -> RSI 1W: {rsi_week_n} >= {RSI_WEEK_OVERBOUGHT} | Giá: {curr_close} | Sheet: {sheet_res}")
+            print(f"\n🚨 [ĐỈNH TUẦN QUÁ MUA {tf_tag}] {symbol} -> RSI 1W (n): {rsi_week_n} | (n-1): {rsi_week_prev} | Giá: {curr_close} | Sheet: {sheet_res}")
             detected.append(payload_peak)
 
         # 5. ĐIỀU KIỆN RSI TUẦN: XÁC NHẬN GÃY ĐỈNH TUẦN (WEEKLY_RSI_REVERSAL_BREAKDOWN)
         candle_change = ((curr_close - prev_close) / prev_close) * 100
         if rsi_week_prev >= RSI_WEEK_OVERBOUGHT and candle_change <= RSI_WEEK_BREAKDOWN_DROP:
-
             payload_breakdown = {
                 "symbol": symbol,
                 "time": time_str,
@@ -435,28 +375,16 @@ def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: 
                 "macd_hist": float(round(curr['MACD_Hist'], 4)),
                 "is_squeeze": bool(curr['Is_Squeeze']),
                 "vol_ratio": f"{curr['Vol_Ratio']}x",
-                "notes": f"[{tf_tag}] Xác nhận gãy đỉnh tuần: RSI tuần n-1 = {rsi_week_prev} >= {RSI_WEEK_OVERBOUGHT}, RSI tuần n = {rsi_week_n}, nến giảm {candle_change:.2f}%."
-                "symbol": symbol,
-                "time": time_str,
-                "signal_type": f"WEEKLY_RSI_REVERSAL_BREAKDOWN_{tf_tag}",
-                "trigger_price": curr_close,
-                "neckline_price": float(round(curr['BB_Mid'], 4)),
-                "rsi_weekly": float(rsi_week_prev),
-                "rsi_current": float(curr['RSI']),
-                "macd_hist": float(round(curr['MACD_Hist'], 4)),
-                "is_squeeze": bool(curr['Is_Squeeze']),
-                "vol_ratio": f"{curr['Vol_Ratio']}x",
-                "notes": f"[{tf_tag}] Xác nhận gãy đỉnh tuần: RSI tuần n-1 = {rsi_week_prev} >= {RSI_WEEK_OVERBOUGHT}, nến giảm {candle_change:.2f}%."
+                "notes": f"[{tf_tag}] Xác nhận gãy đỉnh tuần: RSI tuần (n-1) = {rsi_week_prev} >= {RSI_WEEK_OVERBOUGHT}, RSI tuần (n) = {rsi_week_n}, nến giảm {candle_change:.2f}%."
             }
             sheet_res = append_to_sheet(payload_breakdown)
-            print(f"\n📉 [GÃY ĐỈNH TUẦN {tf_tag}] {symbol} -> RSI tuần n-1: {rsi_week_prev} | Nến giảm: {candle_change:.2f}% | Sheet: {sheet_res}")
+            print(f"\n📉 [GÃY ĐỈNH TUẦN {tf_tag}] {symbol} -> RSI 1W (n-1): {rsi_week_prev} | RSI 1W (n): {rsi_week_n} | Nến giảm: {candle_change:.2f}% | Sheet: {sheet_res}")
             detected.append(payload_breakdown)
 
         return detected
     except Exception as e:
         print(f"Lỗi quét {symbol} [{timeframe}]: {e}")
         return detected
-
 
 def main():
     parser = argparse.ArgumentParser(description="Bot quét mô hình giá Binance đa khung thời gian (12h, 1D) kết hợp RSI Tuần")
@@ -523,7 +451,6 @@ def main():
     else:
         print("ℹ️ Kết quả: Không có cặp coin nào xuất hiện điểm breakout mô hình ở các khung quét.")
     print("=" * 75)
-
 
 if __name__ == "__main__":
     main()

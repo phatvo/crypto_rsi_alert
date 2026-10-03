@@ -402,12 +402,9 @@ def scan_candle_for_timeframe(symbol: str, timeframe: str, check_closed_candle: 
 
 def main():
     parser = argparse.ArgumentParser(description="Bot quét mô hình giá Binance đa khung thời gian (12h, 1D) kết hợp RSI Tuần")
-    parser.add_argument("--tf", "--timeframe", dest="timeframe", default=os.getenv("TIMEFRAME", "auto"),
-                        help="Khung thời gian quét: '12h', '1d', 'both' (cả 12h và 1d), '4h', hoặc 'auto" (tự động theo giờ VN)")
-    parser.add_argument("--live", action="store_true", default=False,
-                        help="Nếu bật --live: Quét nến đang chạy dở (iloc[-1]). Mặc định: Quét nến vừa đóng hoàn tất (iloc[-2]).")
-    parser.add_argument("--exclude-stocks", action="store_true", default=False,
-                        help="Loại bỏ các mã chứng khoán/token phái sinh (*BUSDT như TQQQBUSDT, NOKBUSDT, SKHYBUSDT...).")
+    parser.add_argument("--tf", "--timeframe", dest="timeframe", default=os.getenv("TIMEFRAME", "auto"), help="Khung thời gian quét: '12h', '1d', 'both' (cả 12h và 1d), '4h', hoặc 'auto" (tự động theo giờ VN)")
+    parser.add_argument("--live", action="store_true", default=False, help="Nếu bật --live: Quét nến đang chạy dở (iloc[-1]). Mặc định: Quét nến vừa đóng hoàn tất (iloc[-2]).")
+    parser.add_argument("--exclude-stocks", action="store_true", default=False, help="Loại bỏ các mã chứng khoán/token phái sinh (*BUSDT như TQQQBUSDT, NOKBUSDT, SKHYBUSDT...).")
     args = parser.parse_args()
 
     check_closed = not args.live

@@ -4,7 +4,7 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-GOOGLE_SHEET_WEBHOOK_URL = os.getenv("GOOGLE_SHEET_WEBHOOK_URL", "https://script.google.com/macros/s/AKfycbxuZEvS0V43a0E5mATuBpGy95cx4S9h7X02JL494cXL8Ncuy_GBioy5q056U_0FQio39A/exec")
+GOOGLE_SHEET_WEBHOOK_URL = os.getenv("GOOGLE_SHEET_WEBHOOK_URL")
 TIMEFRAME = "4h"
 CANDLE_LIMIT = 80  # Chỉ cần lấy 80 nến gần nhất để tính chỉ báo và nhận diện đỉnh/đáy gần nhất
 
